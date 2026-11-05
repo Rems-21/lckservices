@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Facturation &amp; Paiements — LCK Services SARL{% endblock %}
+{% block page_title %}Facturation &amp; Paiements{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'billing:invoice_create' %}?type=DEFINITIVE" class="btn btn-success"><i class="fa fa-plus me-1"></i> Nouvelle Facture Définitive</a>
+        <a href="{% url 'billing:invoice_create' %}?type=PROFORMA" class="btn btn-primary"><i class="fa fa-file-o me-1"></i> Nouvelle Proforma</a>
+        <a href="{% url 'billing:payment_list' %}" class="btn btn-default"><i class="fa fa-money me-1"></i> Reçus de Paiement</a>
+        <a href="{% url 'billing:receivables' %}" class="btn btn-danger"><i class="fa fa-warning me-1"></i> Créances &amp; Crédits</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="stat-tile tile-primary">
+            <div class="tile-icon"><i class="fa fa-file-text-o"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_billed|fcfa }}</div>
+                <div class="tile-label">Total Facturé (Définitif)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-tile tile-success">
+            <div class="tile-icon"><i class="fa fa-money"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_paid|fcfa }}</div>
+                <div class="tile-label">Total Encaissé</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-tile tile-danger">
+            <div class="tile-icon"><i class="fa fa-exclamation-circle"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_receivables|fcfa }}</div>
+                <div class="tile-label">Soldes Restants à Recouvrer</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-file-text-o me-1"></i> Liste des Factures Clients (Proforma &amp; Définitives)
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Numéro</th>
+                        <th>Type</th>
+                        <th>Client</th>
+                        <th>Dossier</th>
+                        <th>Émission</th>
+                        <th class="text-end">Total TTC</th>
+                        <th class="text-end">Encaissé</th>
+                        <th class="text-end">Reste dû</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in page_obj %}
+                    <tr>
+                        <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-bold">{{ inv.number }}</a></td>
+                        <td>{{ inv.get_invoice_type_display }}</td>
+                        <td><a href="{% url 'clients:detail' inv.client_id %}">{{ inv.client.name }}</a></td>
+                        <td>{% if inv.folder %}<a href="{% url 'shipments:detail' inv.folder_id %}">{{ inv.folder.reference }}</a>{% else %}-{% endif %}</td>
+                        <td>{{ inv.issue_date|date:"d/m/Y" }}</td>
+                        <td class="text-end fw-bold">{{ inv.total_amount_fcfa|fcfa }}</td>
+                        <td class="text-end text-success">{{ inv.paid_amount_fcfa|fcfa }}</td>
+                        <td class="text-end fw-bold {% if inv.balance_due_fcfa > 0 %}text-danger{% endif %}">{{ inv.balance_due_fcfa|fcfa }}</td>
+                        <td>
+                            {% if inv.status == 'PAYEE' %}
+                                <span class="label label-success">{{ inv.get_status_display }}</span>
+                            {% elif inv.status == 'PARTIELLEMENT_PAYEE' %}
+                                <span class="label label-warning">{{ inv.get_status_display }}</span>
+                            {% elif inv.status == 'PROFORMA' %}
+                                <span class="label label-info">{{ inv.get_status_display }}</span>
+                            {% else %}
+                                <span class="label label-danger">{{ inv.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-primary" title="Ouvrir"><i class="fa fa-eye"></i></a>
+                            <a href="{% url 'documents:invoice_pdf' inv.pk %}" target="_blank" class="btn btn-sm btn-danger" title="PDF"><i class="fa fa-file-pdf-o"></i></a>
+                            <a href="{% url 'communications:hub' %}?invoice={{ inv.pk }}" class="btn btn-sm btn-success" title="WhatsApp"><i class="fa fa-whatsapp"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

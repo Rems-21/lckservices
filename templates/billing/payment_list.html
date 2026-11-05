@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Paiements & Reçus{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Enregistrement des Paiements & Reçus</h4>
+        <p class="text-muted small mb-0">Gestion des encaissements partiels ou totaux (Espèces, Mobile Money, Virement, Chèque) et édition des reçus PDF.</p>
+    </div>
+    <div class="badge bg-success-subtle text-success fs-6 py-2 px-3">Total encaissé : {{ total_collected|fcfa }}</div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-cash-coin text-success me-2"></i>Nouveau Règlement Client</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|striptags }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success w-100 fw-semibold"><i class="bi bi-check2-circle me-1"></i>Encaisser & Générer le Reçu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>N° Reçu</th>
+                            <th>Date</th>
+                            <th>Client</th>
+                            <th>Facture</th>
+                            <th>Mode</th>
+                            <th class="text-end">Montant</th>
+                            <th class="text-end">Reçu PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in page_obj %}
+                        <tr>
+                            <td class="fw-bold">{{ p.receipt_number }}</td>
+                            <td class="small">{{ p.payment_date|date:"d/m/Y" }}</td>
+                            <td><a href="{% url 'clients:detail' p.client_id %}" class="text-decoration-none">{{ p.client.name }}</a></td>
+                            <td><a href="{% url 'billing:invoice_detail' p.invoice_id %}">{{ p.invoice.number }}</a></td>
+                            <td class="small">{{ p.get_payment_method_display }}</td>
+                            <td class="text-end fw-bold text-success">{{ p.amount_fcfa|fcfa }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'documents:receipt_pdf' p.pk %}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-printer me-1"></i>PDF</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">Aucun paiement enregistré.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

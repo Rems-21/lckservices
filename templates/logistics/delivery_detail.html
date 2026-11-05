@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Bon de Livraison {{ delivery.delivery_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success fs-6">{{ delivery.delivery_number }}</span>
+            <h4 class="fw-bold mb-0">Bon de Livraison — {{ delivery.client.name }}</h4>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Dossier {{ delivery.folder.reference }} • Délivré le {{ delivery.delivered_at|date:"d/m/Y à H:i" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'documents:delivery_note_pdf' delivery.pk %}" target="_blank" class="btn btn-dark"><i class="bi bi-printer me-1"></i>Imprimer / Télécharger PDF</a>
+        <a href="{% url 'communications:hub' %}?client={{ delivery.client_id }}&folder={{ delivery.folder_id }}&template=livraison-confirmee" class="btn btn-success"><i class="bi bi-whatsapp me-1"></i>Confirmer sur WhatsApp</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">Détails de Remise</div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between"><span>Client :</span><strong>{{ delivery.client.name }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Réceptionnaire :</span><strong>{{ delivery.recipient_name }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Pièce d'identité :</span><strong>{{ delivery.recipient_id_number|default:"-" }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Mode :</span><span>{{ delivery.get_delivery_mode_display }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Facture :</span><strong>{{ delivery.invoice.number|default:"-" }}</strong></li>
+                {% if delivery.credit_authorization %}
+                <li class="list-group-item d-flex justify-content-between text-warning-emphasis bg-warning-subtle">
+                    <span>Autorisation crédit :</span><strong>{{ delivery.credit_authorization.reference }}</strong>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">Colis Remis ({{ delivery.parcels.count }})</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>Code Colis</th><th>Désignation</th><th class="text-center">Qté</th><th class="text-end">Volume</th><th class="text-end">Poids</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in delivery.parcels.all %}
+                        <tr>
+                            <td class="fw-bold">{{ p.parcel_code }}</td>
+                            <td>{{ p.description }}</td>
+                            <td class="text-center">{{ p.quantity }}</td>
+                            <td class="text-end">{{ p.volume_cbm|num:4 }} m³</td>
+                            <td class="text-end">{{ p.weight_kg|num:2 }} kg</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

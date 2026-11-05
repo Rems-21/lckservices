@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Journal des Opérations — LCK Services SARL{% endblock %}
+{% block page_title %}Journal d'Audit des Opérations{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <form method="get" class="d-flex flex-wrap gap-2">
+        <select name="action" class="form-select form-select-sm" style="width:auto;">
+            <option value="">Toutes actions</option>
+            {% for acode, albl in action_choices %}
+            <option value="{{ acode }}" {% if action_filter == acode %}selected{% endif %}>{{ albl }}</option>
+            {% endfor %}
+        </select>
+        <select name="module" class="form-select form-select-sm" style="width:auto;">
+            <option value="">Tous modules</option>
+            {% for m in modules_list %}
+            <option value="{{ m }}" {% if module_filter == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filtrer</button>
+        <a href="{% url 'accounts:audit_list' %}" class="btn btn-sm btn-default">Réinitialiser</a>
+    </form>
+
+    {% if request.user.can_manage_accounts %}
+    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#purgeAuditModal">
+        <i class="fa fa-trash me-1"></i> Purger le journal
+    </button>
+    {% endif %}
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-history me-1"></i> Traçabilité Chronologique des Actions Utilisateurs
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Heure</th>
+                        <th>Utilisateur</th>
+                        <th>Action</th>
+                        <th>Module</th>
+                        <th>Objet &amp; Détails</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in page_obj %}
+                    <tr>
+                        <td class="text-nowrap">{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
+                        <td><strong>{{ log.username_snapshot }}</strong></td>
+                        <td>
+                            {% if log.action == 'DELETE' %}
+                                <span class="label label-danger">{{ log.get_action_display }}</span>
+                            {% elif log.action == 'CREATE' or log.action == 'PAYMENT' %}
+                                <span class="label label-success">{{ log.get_action_display }}</span>
+                            {% else %}
+                                <span class="label label-primary">{{ log.get_action_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.module }}</td>
+                        <td>
+                            <strong>{{ log.object_repr }}</strong>
+                            {% if log.details %}<div class="text-muted small">{{ log.details }}</div>{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ log.ip_address|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if request.user.can_manage_accounts %}
+<div class="modal fade" id="purgeAuditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:audit_clear' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-warning me-2"></i>Purger le Journal d'Audit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Confirmez votre mot de passe administrateur pour vider l'historique d'audit :</p>
+                    <input type="password" name="admin_password" class="form-control" placeholder="Mot de passe administrateur" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger">Confirmer la purge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

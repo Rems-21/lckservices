@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Traiter Incident {{ incident.reference }}{% else %}Déclarer un Incident{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{% if is_edit %}Suivi de l'incident « {{ incident.reference }} »{% else %}Déclarer un Incident / Avarie / Litige{% endif %}</h4>
+    </div>
+    <a href="{% url 'logistics:incident_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="card" style="max-width: 860px;">
+    <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label small fw-semibold">Dossier *</label>{{ form.folder }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Colis concerné</label>{{ form.parcel }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Client impacté</label>{{ form.client }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Nature de l'incident</label>{{ form.incident_type }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Gravité</label>{{ form.severity }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Statut de traitement</label>{{ form.status }}</div>
+                <div class="col-md-8"><label class="form-label small fw-semibold">Objet / Titre *</label>{{ form.title }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Date du constat</label>{{ form.reported_at }}</div>
+                <div class="col-12"><label class="form-label small fw-semibold">Constat détaillé *</label>{{ form.description }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Préjudice estimé (FCFA)</label>{{ form.estimated_damage_fcfa }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Dédommagement accordé (FCFA)</label>{{ form.compensation_fcfa }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Photo / Pièce jointe</label>{{ form.attachment }}</div>
+                <div class="col-12"><label class="form-label small fw-semibold">Actions correctives & Résolution</label>{{ form.resolution_notes }}</div>
+                {% if not is_edit %}
+                <div class="col-12">
+                    <div class="form-check">
+                        {{ form.mark_parcel_litige }}
+                        <label class="form-check-label small" for="{{ form.mark_parcel_litige.id_for_label }}">{{ form.mark_parcel_litige.label }}</label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary px-4">Enregistrer le dossier d'incident</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

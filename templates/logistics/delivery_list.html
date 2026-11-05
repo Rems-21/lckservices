@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Livraisons & Bons de Livraison{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Gestion des Livraisons Clients</h4>
+        <p class="text-muted small mb-0">Remise des colis sous contrôle automatique de paiement intégral ou d'autorisation de livraison à crédit.</p>
+    </div>
+    <a href="{% url 'logistics:delivery_create' %}" class="btn btn-primary"><i class="bi bi-truck me-1"></i>Nouveau Bon de Livraison</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="N° BL, client, dossier, nom du réceptionnaire...">
+            </div>
+            <div class="col-md-3 d-flex gap-1">
+                <button type="submit" class="btn btn-primary flex-grow-1">Rechercher</button>
+                <a href="{% url 'logistics:delivery_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>N° BL</th>
+                    <th>Date & Heure</th>
+                    <th>Client</th>
+                    <th>Dossier</th>
+                    <th class="text-center">Colis livrés</th>
+                    <th>Réceptionnaire</th>
+                    <th>Couverture Financière</th>
+                    <th class="text-end">PDF</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in page_obj %}
+                <tr>
+                    <td><a href="{% url 'logistics:delivery_detail' d.pk %}" class="fw-bold text-decoration-none">{{ d.delivery_number }}</a></td>
+                    <td class="small text-muted">{{ d.delivered_at|date:"d/m/Y H:i" }}</td>
+                    <td><a href="{% url 'clients:detail' d.client_id %}" class="text-decoration-none">{{ d.client.name }}</a></td>
+                    <td><a href="{% url 'shipments:detail' d.folder_id %}" class="text-decoration-none">{{ d.folder.reference }}</a></td>
+                    <td class="text-center"><span class="badge bg-success">{{ d.parcels.count }}</span></td>
+                    <td class="small">
+                        <div class="fw-medium">{{ d.recipient_name }}</div>
+                        <span class="text-muted">{{ d.recipient_id_number }}</span>
+                    </td>
+                    <td>
+                        {% if d.credit_authorization %}
+                            <span class="badge bg-warning text-dark">Crédit autorisé ({{ d.credit_authorization.reference }})</span>
+                        {% elif d.invoice %}
+                            <span class="badge bg-success-subtle text-success">Facture soldée ({{ d.invoice.number }})</span>
+                        {% else %}
+                            <span class="badge bg-light text-secondary border">Conforme</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'documents:delivery_note_pdf' d.pk %}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-printer me-1"></i>BL PDF</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">Aucune livraison enregistrée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

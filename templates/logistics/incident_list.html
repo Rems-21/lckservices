@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Incidents, Avaries & Litiges{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Gestion des Incidents, Avaries & Litiges</h4>
+        <p class="text-muted small mb-0">Suivi des constats d'avarie, colis manquants, retards et réclamations clients.</p>
+    </div>
+    <a href="{% url 'logistics:incident_create' %}" class="btn btn-danger"><i class="bi bi-exclamation-octagon me-1"></i>Déclarer un incident</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Référence</th>
+                    <th>Nature & Objet</th>
+                    <th>Dossier / Colis</th>
+                    <th>Gravité</th>
+                    <th class="text-end">Préjudice estimé</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inc in incidents %}
+                <tr>
+                    <td class="fw-bold">{{ inc.reference }}</td>
+                    <td>
+                        <div class="fw-semibold">{{ inc.title }}</div>
+                        <small class="text-muted">{{ inc.get_incident_type_display }}</small>
+                    </td>
+                    <td class="small">
+                        <div><a href="{% url 'shipments:detail' inc.folder_id %}">{{ inc.folder.reference }}</a></div>
+                        {% if inc.parcel %}<div class="text-muted">{{ inc.parcel.parcel_code }}</div>{% endif %}
+                    </td>
+                    <td><span class="badge {{ inc.severity|badge_class }}">{{ inc.get_severity_display }}</span></td>
+                    <td class="text-end">{{ inc.estimated_damage_fcfa|fcfa }}</td>
+                    <td><span class="badge {{ inc.status|badge_class }}">{{ inc.get_status_display }}</span></td>
+                    <td class="small text-muted">{{ inc.reported_at|date:"d/m/Y" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'logistics:incident_edit' inc.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Traiter</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">Aucun incident ou litige enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

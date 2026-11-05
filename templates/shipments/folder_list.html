@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Dossiers d'Expédition &amp; Groupage — LCK Services SARL{% endblock %}
+{% block page_title %}Dossiers de Groupage{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newDossierModal">
+            <i class="fa fa-plus me-1"></i> Nouveau Dossier de Groupage
+        </button>
+        <a href="{% url 'shipments:locations' %}" class="btn btn-default">
+            <i class="fa fa-map-marker me-1"></i> Ports &amp; Aéroports
+        </a>
+    </div>
+
+    <!-- Filtres rapides par mode -->
+    <div class="btn-group" role="group">
+        <a href="{% url 'shipments:list' %}" class="btn btn-sm {% if not mode %}btn-navy{% else %}btn-default{% endif %}">
+            Tous ({{ stats.total }})
+        </a>
+        <a href="{% url 'shipments:list' %}?mode=MARITIME" class="btn btn-sm {% if mode == 'MARITIME' %}btn-primary{% else %}btn-default{% endif %}">
+            <i class="fa fa-ship me-1"></i> Maritime ({{ stats.maritime }})
+        </a>
+        <a href="{% url 'shipments:list' %}?mode=AERIEN" class="btn btn-sm {% if mode == 'AERIEN' %}btn-info{% else %}btn-default{% endif %}">
+            <i class="fa fa-plane me-1"></i> Aérien ({{ stats.aerien }})
+        </a>
+    </div>
+</div>
+
+<!-- Tableau principal style MyTV Inventory -->
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-folder-open me-1"></i> Liste des Dossiers d'Expédition &amp; de Groupage
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Référence</th>
+                        <th>Mode</th>
+                        <th>Trajet (Origine &rarr; Destination)</th>
+                        <th>Transport / B/L ou AWB</th>
+                        <th>Départ / ETA</th>
+                        <th class="text-center">Colis / Volume</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in page_obj %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'shipments:detail' f.pk %}" class="fw-bold">{{ f.reference }}</a>
+                            {% if f.title %}<div class="text-muted small">{{ f.title|truncatechars:42 }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {% if f.transport_mode == 'MARITIME' %}
+                                <span class="label label-navy"><i class="fa fa-ship"></i> Maritime</span>
+                            {% else %}
+                                <span class="label label-info"><i class="fa fa-plane"></i> Aérien</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ f.origin.city }}</strong> &rarr; <strong>{{ f.destination.city }}</strong>
+                            <div class="text-muted small">{{ f.origin.code }} &rarr; {{ f.destination.code }}</div>
+                        </td>
+                        <td>
+                            {% if f.transport_mode == 'MARITIME' %}
+                                <div>{{ f.container_number|default:"-" }} {% if f.container_type %}<span class="text-muted small">({{ f.container_type }})</span>{% endif %}</div>
+                                <small class="text-muted">B/L : {{ f.bl_number|default:"-" }} | {{ f.vessel_name|default:f.shipping_line|default:"-" }}</small>
+                            {% else %}
+                                <div>Vol : {{ f.flight_number|default:"-" }}</div>
+                                <small class="text-muted">AWB : {{ f.awb_number|default:"-" }} | {{ f.airline_name|default:"-" }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>Départ : {{ f.etd|date:"d/m/Y"|default:"-" }}</div>
+                            <small class="text-muted">ETA : {{ f.eta|date:"d/m/Y"|default:"-" }}</small>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ f.parcels_count }}</strong> colis
+                            <div class="text-muted small">{{ f.volume_sum|num:3 }} m³ | {{ f.weight_sum|num:1 }} kg</div>
+                        </td>
+                        <td>
+                            {% if f.status == 'CLOTURE' or f.status == 'LIVRE' %}
+                                <span class="label label-success">{{ f.get_status_display }}</span>
+                            {% elif f.status == 'ANNULE' %}
+                                <span class="label label-danger">{{ f.get_status_display }}</span>
+                            {% elif f.status == 'EN_TRANSIT' %}
+                                <span class="label label-primary">{{ f.get_status_display }}</span>
+                            {% elif f.status == 'DISPONIBLE_ENTREPOT' %}
+                                <span class="label label-info">{{ f.get_status_display }}</span>
+                            {% else %}
+                                <span class="label label-warning">{{ f.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'shipments:detail' f.pk %}" class="btn btn-sm btn-primary" title="Ouvrir le dossier">
+                                <i class="fa fa-eye"></i> Ouvrir
+                            </a>
+                            <a href="{% url 'shipments:print_fiche' f.pk %}" target="_blank" class="btn btn-sm btn-default" title="Fiche A4">
+                                <i class="fa fa-print"></i>
+                            </a>
+                            <a href="{% url 'shipments:edit' f.pk %}" class="btn btn-sm btn-info" title="Modifier">
+                                <i class="fa fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Création Rapide Dossier -->
+<div class="modal fade" id="newDossierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:quick_create' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-plus-circle me-2"></i>Nouveau Dossier de Groupage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <datalist id="lckLocationsList">
+                        {% for loc in locations %}
+                        <option value="{{ loc.city }} ({{ loc.country }}) — {{ loc.code }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </datalist>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Mode de transport *</label>
+                            <select name="transport_mode" id="modalModeSelect" class="form-select" required>
+                                <option value="MARITIME">Maritime (Conteneur / B/L)</option>
+                                <option value="AERIEN">Aérien (Fret / AWB)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Intitulé de la campagne / du dossier</label>
+                            <input type="text" name="title" class="form-control" placeholder="Ex : Groupage Conteneur 40' HC Guangzhou — Douala">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Port / Aéroport de départ *</label>
+                            <input type="text" name="origin_port" list="lckLocationsList" class="form-control" placeholder="Ex : Guangzhou (Chine)" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Port / Aéroport d'arrivée *</label>
+                            <input type="text" name="destination_port" list="lckLocationsList" class="form-control" value="Douala (Cameroun)" required>
+                        </div>
+
+                        <!-- Champs Maritime -->
+                        <div class="col-md-4 maritime-only">
+                            <label class="form-label">Type Conteneur</label>
+                            <select name="container_type" class="form-select">
+                                {% for ccode, clabel in container_types %}
+                                <option value="{{ ccode }}">{{ clabel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 maritime-only">
+                            <label class="form-label">N° Conteneur</label>
+                            <input type="text" name="container_number" class="form-control" placeholder="Ex : CMAU7845129">
+                        </div>
+                        <div class="col-md-4 maritime-only">
+                            <label class="form-label">Connaissement (B/L)</label>
+                            <input type="text" name="bl_number" class="form-control" placeholder="N° B/L">
+                        </div>
+                        <div class="col-md-6 maritime-only">
+                            <label class="form-label">Navire / Compagnie</label>
+                            <input type="text" name="vessel_name" class="form-control" placeholder="Ex : CMA CGM KRIBI">
+                        </div>
+
+                        <!-- Champs Aérien -->
+                        <div class="col-md-4 aerien-only d-none">
+                            <label class="form-label">Compagnie aérienne</label>
+                            <input type="text" name="airline_name" class="form-control" placeholder="Ex : Ethiopian Cargo">
+                        </div>
+                        <div class="col-md-4 aerien-only d-none">
+                            <label class="form-label">N° de Vol</label>
+                            <input type="text" name="flight_number" class="form-control" placeholder="Ex : ET-3915">
+                        </div>
+                        <div class="col-md-4 aerien-only d-none">
+                            <label class="form-label">N° LTA / AWB</label>
+                            <input type="text" name="awb_number" class="form-control" placeholder="Ex : 071-88451293">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Transitaire / Correspondant</label>
+                            <input type="text" name="forwarder" class="form-control" placeholder="Nom de l'agent ou transitaire">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date départ (ETD)</label>
+                            <input type="date" name="departure_date" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Arrivée prévue (ETA)</label>
+                            <input type="date" name="arrival_estimated_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observations</label>
+                            <textarea name="notes" rows="2" class="form-control" placeholder="Instructions particulières..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Enregistrer le dossier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var sel = document.getElementById("modalModeSelect");
+        if (sel) {
+            var toggleFields = function () {
+                var isAir = sel.value === "AERIEN";
+                document.querySelectorAll(".maritime-only").forEach(function (el) { el.classList.toggle("d-none", isAir); });
+                document.querySelectorAll(".aerien-only").forEach(function (el) { el.classList.toggle("d-none", !isAir); });
+            };
+            sel.addEventListener("change", toggleFields);
+            toggleFields();
+        }
+    });
+</script>
+{% endblock %}

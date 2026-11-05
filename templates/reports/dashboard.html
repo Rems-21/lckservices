@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Tableau de Bord — LCK Services SARL{% endblock %}
+{% block page_title %}Tableau de Bord{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div>
+        <h1>Tableau de Bord</h1>
+        <p class="text-muted mb-0">Aperçu en temps réel des opérations de transit et de groupage maritime et aérien — LCK Services SARL.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'shipments:list' %}" class="btn btn-navy"><i class="fa fa-ship me-1"></i> Dossiers Groupage</a>
+        <a href="{% url 'reports:hub' %}" class="btn btn-primary"><i class="fa fa-pie-chart me-1"></i> Rapports &amp; Exports</a>
+    </div>
+</div>
+
+<!-- 4 Tuiles KPI colorées (Style MyTV Dashboard + Couleurs LCK) -->
+<div class="row">
+    <div class="col-xl-3 col-sm-6">
+        <a href="{% url 'shipments:list' %}" class="text-decoration-none">
+            <div class="stat-tile tile-navy">
+                <div class="tile-icon"><i class="fa fa-folder-open"></i></div>
+                <div class="tile-data">
+                    <div class="huge">{{ kpi.active_folders }}</div>
+                    <div class="tile-label">Dossiers Actifs ({{ kpi.maritime_folders }} Mar. / {{ kpi.aerien_folders }} Aér.)</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <a href="{% url 'cargo:list' %}" class="text-decoration-none">
+            <div class="stat-tile tile-primary">
+                <div class="tile-icon"><i class="fa fa-cubes"></i></div>
+                <div class="tile-data">
+                    <div class="huge">{{ kpi.total_parcels }}</div>
+                    <div class="tile-label">Colis Enregistrés ({{ kpi.total_cbm|num:2 }} m³)</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <a href="{% url 'billing:payment_list' %}" class="text-decoration-none">
+            <div class="stat-tile tile-success">
+                <div class="tile-icon"><i class="fa fa-money"></i></div>
+                <div class="tile-data">
+                    <div class="huge">{{ kpi.total_paid|fcfa }}</div>
+                    <div class="tile-label">Recettes Encaissées</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <a href="{% url 'billing:receivables' %}" class="text-decoration-none">
+            <div class="stat-tile tile-danger">
+                <div class="tile-icon"><i class="fa fa-exclamation-circle"></i></div>
+                <div class="tile-data">
+                    <div class="huge">{{ kpi.total_unpaid|fcfa }}</div>
+                    <div class="tile-label">Soldes Impayés Clients</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Bandeau synthétique secondaire -->
+<div class="row margin-bottom-20">
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Clients Actifs</div>
+            <div class="kpi-value">{{ kpi.total_clients }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Facturé</div>
+            <div class="kpi-value">{{ kpi.total_invoiced|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Dépenses Dossiers</div>
+            <div class="kpi-value">{{ kpi.total_expenses|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Résultat Net Commercial</div>
+            <div class="kpi-value {% if kpi.net_result >= 0 %}text-success{% else %}text-danger{% endif %}">{{ kpi.net_result|fcfa }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Panneaux Graphiques -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <i class="fa fa-line-chart me-1"></i> Évolution Mensuelle — Facturations, Encaissements &amp; Dépenses (12 mois)
+            </div>
+            <div class="panel-body">
+                <canvas id="dashboardFinanceChart" height="105"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="panel panel-navy">
+            <div class="panel-heading">
+                <i class="fa fa-pie-chart me-1"></i> Répartition Maritime vs Aérien
+            </div>
+            <div class="panel-body text-center">
+                <div style="max-height: 220px; display: flex; justify-content: center;">
+                    <canvas id="dashboardModeChart"></canvas>
+                </div>
+                <div class="mt-3 small text-muted">
+                    <span class="label label-navy me-2">Maritime : {{ kpi.maritime_folders }}</span>
+                    <span class="label label-info">Aérien : {{ kpi.aerien_folders }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableaux de suivi opérationnel -->
+<div class="row">
+    <div class="col-lg-7">
+        <div class="panel panel-default">
+            <div class="panel-heading d-flex justify-content-between align-items-center">
+                <span><i class="fa fa-ship me-1"></i> Derniers Dossiers d'Expédition</span>
+                <a href="{% url 'shipments:list' %}" class="btn btn-xs btn-primary">Voir tout</a>
+            </div>
+            <div class="panel-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Mode</th>
+                                <th>Trajet</th>
+                                <th class="text-center">Colis</th>
+                                <th>Statut</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in recent_folders %}
+                            <tr>
+                                <td><strong>{{ f.reference }}</strong></td>
+                                <td>
+                                    {% if f.transport_mode == 'MARITIME' %}
+                                        <span class="label label-navy"><i class="fa fa-ship"></i> Maritime</span>
+                                    {% else %}
+                                        <span class="label label-info"><i class="fa fa-plane"></i> Aérien</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ f.origin.city }} &rarr; {{ f.destination.city }}</td>
+                                <td class="text-center">{{ f.parcels_total }}</td>
+                                <td>
+                                    {% if f.status == 'CLOTURE' or f.status == 'LIVRE' %}
+                                        <span class="label label-success">{{ f.get_status_display }}</span>
+                                    {% elif f.status == 'ANNULE' %}
+                                        <span class="label label-danger">{{ f.get_status_display }}</span>
+                                    {% elif f.status == 'EN_TRANSIT' %}
+                                        <span class="label label-primary">{{ f.get_status_display }}</span>
+                                    {% else %}
+                                        <span class="label label-warning">{{ f.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'shipments:detail' f.pk %}" class="btn btn-sm btn-primary" title="Ouvrir le dossier">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">Aucun dossier enregistré.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="panel panel-danger">
+            <div class="panel-heading d-flex justify-content-between align-items-center">
+                <span><i class="fa fa-warning me-1"></i> Soldes Impayés à Relancer</span>
+                <a href="{% url 'billing:receivables' %}" class="btn btn-xs btn-light text-dark">Créances</a>
+            </div>
+            <div class="panel-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Facture</th>
+                                <th>Client</th>
+                                <th class="text-end">Reste dû</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inv in unpaid_invoices %}
+                            <tr>
+                                <td><strong>{{ inv.number }}</strong></td>
+                                <td>{{ inv.client.name }}</td>
+                                <td class="text-end text-danger fw-bold">{{ inv.balance_due_fcfa|fcfa }}</td>
+                                <td>
+                                    {% if inv.folder_id %}
+                                    <a href="{% url 'shipments:detail' inv.folder_id %}" class="btn btn-sm btn-primary" title="Dossier"><i class="fa fa-folder-open"></i></a>
+                                    {% else %}
+                                    <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-primary" title="Facture"><i class="fa fa-eye"></i></a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">Aucune facture impayée en attente.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var payload = {{ chart_json|safe }};
+
+        var finCtx = document.getElementById("dashboardFinanceChart");
+        if (finCtx && window.Chart) {
+            new Chart(finCtx.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: payload.months,
+                    datasets: [
+                        {
+                            label: "Facturé (FCFA)",
+                            data: payload.revenues,
+                            backgroundColor: "rgba(37, 99, 235, 0.8)"
+                        },
+                        {
+                            label: "Encaissé (FCFA)",
+                            data: payload.collections,
+                            backgroundColor: "rgba(16, 185, 129, 0.85)"
+                        },
+                        {
+                            label: "Dépenses (FCFA)",
+                            data: payload.expenses,
+                            backgroundColor: "rgba(239, 68, 68, 0.78)"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        var modeCtx = document.getElementById("dashboardModeChart");
+        if (modeCtx && window.Chart) {
+            new Chart(modeCtx.getContext("2d"), {
+                type: "doughnut",
+                data: {
+                    labels: ["Maritime", "Aérien"],
+                    datasets: [{
+                        data: payload.modes,
+                        backgroundColor: ["#0B1B4A", "#0EA5E9"],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: "bottom" } }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

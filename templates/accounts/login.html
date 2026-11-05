@@ -1,0 +1,836 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Connexion — LCK Services SARL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/jpeg" href="{% static 'img/logo.jpg' %}">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        :root {
+            --primary-navy: #0B1B4A;
+            --primary-navy-dark: #071333;
+            --primary-blue: #2563EB;
+            --primary-blue-hover: #1D4ED8;
+            --accent-cyan: #06B6D4;
+            --accent-emerald: #10B981;
+            --accent-amber: #F59E0B;
+            --bg-light: #FFFFFF;
+            --text-dark: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #FFFFFF;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* Conteneur principal 50/50 Split */
+        .auth-split-wrapper {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* -------------------------------------------------------------
+           COLONNE GAUCHE : Formulaire & Identité de marque
+           ------------------------------------------------------------- */
+        .auth-form-column {
+            flex: 0 0 50%;
+            max-width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #FFFFFF;
+            padding: 48px 56px;
+            position: relative;
+        }
+
+        .auth-form-content {
+            max-width: 420px;
+            width: 100%;
+            margin: auto;
+        }
+
+        .auth-brand-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 34px;
+        }
+
+        .auth-brand-logo {
+            height: 52px;
+            width: auto;
+            max-width: 60px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #FFFFFF;
+            padding: 2px;
+            box-shadow: 0 2px 8px rgba(11, 27, 74, 0.08);
+            border: 1px solid #E2E8F0;
+        }
+
+        .auth-brand-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: var(--primary-navy);
+            letter-spacing: -0.3px;
+            line-height: 1.15;
+            margin: 0;
+        }
+
+        .auth-brand-sub {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-top: 3px;
+        }
+
+        .auth-heading {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .auth-subheading {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .auth-subheading strong {
+            color: var(--primary-navy);
+        }
+
+        .auth-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .auth-input-wrapper {
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .auth-input {
+            height: 46px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border-color);
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text-dark);
+            background-color: #FFFFFF;
+            transition: all 0.2s ease;
+        }
+
+        .auth-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12);
+            background-color: #FFFFFF;
+            outline: none;
+        }
+
+        .auth-input::placeholder {
+            color: #94A3B8;
+            font-size: 13.5px;
+        }
+
+        .toggle-pw-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #94A3B8;
+            padding: 8px 12px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .toggle-pw-btn:hover {
+            color: var(--primary-navy);
+        }
+
+        .auth-btn-submit {
+            background-color: var(--primary-blue);
+            border: none;
+            color: #FFFFFF;
+            height: 48px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+        }
+
+        .auth-btn-submit:hover {
+            background-color: var(--primary-blue-hover);
+            color: #FFFFFF;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+        }
+
+        .auth-footer {
+            font-size: 12px;
+            color: #94A3B8;
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        /* -------------------------------------------------------------
+           COLONNE DROITE : Motif Haute Technologie & Animation Navire / Avion
+           ------------------------------------------------------------- */
+        .auth-visual-column {
+            flex: 0 0 50%;
+            max-width: 50%;
+            background: radial-gradient(circle at 75% 25%, #132A6B 0%, #0B1B4A 50%, #071333 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* Motif grille de points (en haut à droite, comme sur la maquette) */
+        .visual-dot-grid {
+            position: absolute;
+            top: 24px;
+            right: 28px;
+            width: 140px;
+            height: 140px;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1.5px, transparent 1.5px);
+            background-size: 14px 14px;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* Motif anneaux orbitaux concentriques (style Connect / Radar de navigation) */
+        .radar-orbit-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 620px;
+            height: 620px;
+            pointer-events: none;
+        }
+
+        .radar-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+        }
+
+        .radar-ring-1 {
+            width: 220px;
+            height: 220px;
+            border-color: rgba(37, 99, 235, 0.28);
+            animation: ringPulse 8s ease-in-out infinite alternate;
+        }
+
+        .radar-ring-2 {
+            width: 380px;
+            height: 380px;
+            border-color: rgba(255, 255, 255, 0.08);
+            animation: ringRotate 40s linear infinite;
+        }
+
+        .radar-ring-3 {
+            width: 540px;
+            height: 540px;
+            border-color: rgba(6, 182, 212, 0.14);
+        }
+
+        @keyframes ringPulse {
+            0% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.5; }
+            100% { transform: translate(-50%, -50%) scale(1.04); opacity: 0.9; }
+        }
+
+        @keyframes ringRotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Nœuds de réseau lumineux reliés (motif comme sur l'image) */
+        .network-nodes-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Conteneur principal de la scène animée */
+        .transit-stage {
+            position: relative;
+            width: 100%;
+            max-width: 520px;
+            height: 480px;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+
+        /* -------------------------------------------------------------
+           ANIMATION 1 : L'AVION CARGO DANS LE CIEL
+           ------------------------------------------------------------- */
+        .sky-corridor {
+            position: relative;
+            width: 100%;
+            height: 190px;
+        }
+
+        .sky-corridor-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Trajectoire de vol aérienne */
+        .flight-arc {
+            stroke: rgba(6, 182, 212, 0.45);
+            stroke-width: 2.2;
+            stroke-dasharray: 6 6;
+            animation: flightDash 1.2s linear infinite;
+        }
+
+        @keyframes flightDash {
+            to { stroke-dashoffset: -24; }
+        }
+
+        /* Avion en vol avec animation continue */
+        .plane-animator {
+            animation: planeGlide 12s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes planeGlide {
+            0% {
+                transform: translate(-30px, 120px) rotate(-14deg) scale(0.85);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            50% {
+                transform: translate(220px, 40px) rotate(-4deg) scale(1);
+            }
+            85% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(490px, 15px) rotate(8deg) scale(0.9);
+                opacity: 0;
+            }
+        }
+
+        /* Traînée lumineuse derrière l'avion */
+        .contrail-glow {
+            filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+        }
+
+        /* Balises d'aéroports / Waypoints */
+        .airport-waypoint {
+            animation: waypointBeacon 3s ease-in-out infinite;
+        }
+
+        @keyframes waypointBeacon {
+            0%, 100% { opacity: 0.7; r: 4px; }
+            50% { opacity: 1; r: 6px; }
+        }
+
+        /* -------------------------------------------------------------
+           ANIMATION 2 : LE BATEAU PORTE-CONTENEURS SUR LES VAGUES
+           ------------------------------------------------------------- */
+        .sea-corridor {
+            position: relative;
+            width: 100%;
+            height: 210px;
+            overflow: visible;
+        }
+
+        .sea-corridor-svg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Animation des vagues océaniques */
+        .ocean-wave-back {
+            fill: rgba(19, 42, 107, 0.55);
+            animation: waveBack 8s ease-in-out infinite alternate;
+        }
+
+        .ocean-wave-mid {
+            fill: rgba(37, 99, 235, 0.35);
+            animation: waveMid 5s ease-in-out infinite alternate-reverse;
+        }
+
+        .ocean-wave-front {
+            fill: rgba(7, 19, 51, 0.85);
+            animation: waveFront 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes waveBack {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-35px); }
+        }
+        @keyframes waveMid {
+            0% { transform: translateX(-25px); }
+            100% { transform: translateX(20px); }
+        }
+        @keyframes waveFront {
+            0% { transform: translateX(10px); }
+            100% { transform: translateX(-20px); }
+        }
+
+        /* Bateau porte-conteneurs : tangage & navigation */
+        .cargo-ship-group {
+            animation: shipSailing 16s ease-in-out infinite;
+            transform-origin: 240px 140px;
+        }
+
+        @keyframes shipSailing {
+            0% {
+                transform: translateX(-40px) rotate(-1.5deg) translateY(0);
+            }
+            25% {
+                transform: translateX(5px) rotate(1.2deg) translateY(-3px);
+            }
+            50% {
+                transform: translateX(45px) rotate(-1deg) translateY(2px);
+            }
+            75% {
+                transform: translateX(15px) rotate(1.8deg) translateY(-2px);
+            }
+            100% {
+                transform: translateX(-40px) rotate(-1.5deg) translateY(0);
+            }
+        }
+
+        /* Fumée discrète de la cheminée */
+        .chimney-smoke {
+            animation: smokeRise 2.5s ease-out infinite;
+            opacity: 0;
+        }
+        @keyframes smokeRise {
+            0% { transform: translateY(0) scale(0.6); opacity: 0.7; }
+            50% { opacity: 0.4; }
+            100% { transform: translateY(-18px) scale(1.4); opacity: 0; }
+        }
+
+        /* Badges de transport flottants */
+        .stage-chips-bottom {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 14px;
+        }
+
+        .transit-chip {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #E2E8F0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* -------------------------------------------------------------
+           RESPONSIVE MOBILE (< 992px)
+           ------------------------------------------------------------- */
+        @media (max-width: 991px) {
+            .auth-split-wrapper {
+                flex-direction: column;
+            }
+            .auth-form-column {
+                flex: 1 0 100%;
+                max-width: 100%;
+                padding: 36px 24px;
+            }
+            .auth-visual-column {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-split-wrapper">
+        <!-- =========================================================
+             COLONNE GAUCHE : Formulaire de connexion
+             ========================================================= -->
+        <div class="auth-form-column">
+            <!-- Logo et entête de marque -->
+            <div class="auth-brand-header">
+                <img src="{% static 'img/logo.jpg' %}" alt="LCK Services SARL" class="auth-brand-logo">
+                <div>
+                    <h1 class="auth-brand-title">LCK Services SARL</h1>
+                    <span class="auth-brand-sub">Transit &amp; Groupage International</span>
+                </div>
+            </div>
+
+            <!-- Corps du formulaire -->
+            <div class="auth-form-content">
+                <h2 class="auth-heading">Bienvenue !</h2>
+                <p class="auth-subheading">
+                    Connectez-vous pour accéder à votre espace de gestion <strong>LCK CONNECT</strong>.
+                </p>
+
+                {% if form.errors %}
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
+                    <i class="fa fa-exclamation-circle text-danger"></i>
+                    <span>Identifiant ou mot de passe incorrect. Veuillez réessayer.</span>
+                </div>
+                {% endif %}
+
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-3">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" action="{% url 'accounts:login' %}" autocomplete="on">
+                    {% csrf_token %}
+
+                    <!-- Champ Email / Identifiant -->
+                    <div class="auth-input-wrapper">
+                        <label for="id_username" class="auth-label">
+                            Email ou Identifiant <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control auth-input"
+                               name="username"
+                               id="id_username"
+                               placeholder="admin ou contact@lckservices.cm"
+                               value="{{ form.username.value|default:'' }}"
+                               required
+                               autofocus>
+                    </div>
+
+                    <!-- Champ Mot de passe avec bouton Afficher/Masquer -->
+                    <div class="auth-input-wrapper">
+                        <label for="id_password" class="auth-label">
+                            Mot de passe <span class="text-danger">*</span>
+                        </label>
+                        <div class="position-relative">
+                            <input type="password"
+                                   class="form-control auth-input pe-5"
+                                   name="password"
+                                   id="id_password"
+                                   placeholder="Entrez votre mot de passe"
+                                   required>
+                            <button type="button"
+                                    class="toggle-pw-btn"
+                                    id="togglePasswordBtn"
+                                    aria-label="Afficher ou masquer le mot de passe">
+                                <i class="fa fa-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Options de session -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember_me" value="1" id="rememberMe" checked>
+                            <label class="form-check-label text-muted small user-select-none" for="rememberMe">
+                                Se souvenir de moi
+                            </label>
+                        </div>
+                        <a href="#"
+                           class="small text-primary text-decoration-none fw-semibold"
+                           onclick="alert('Pour réinitialiser votre accès, veuillez contacter l\'administrateur informatique de LCK Services SARL.'); return false;">
+                            Mot de passe oublié ?
+                        </a>
+                    </div>
+
+                    <!-- Redirection après connexion -->
+                    <input type="hidden" name="next" value="{{ next|default:'/' }}">
+
+                    <!-- Bouton de soumission principal -->
+                    <button type="submit" class="btn auth-btn-submit w-100">
+                        Connexion
+                    </button>
+                </form>
+            </div>
+
+            <!-- Pied de page sécurisé -->
+            <div class="auth-footer">
+                <span><i class="fa fa-lock text-success me-1"></i> Accès sécurisé | &copy; {% now "Y" %} LCK SERVICES SARL</span>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             COLONNE DROITE : Motif Haute Technologie avec Animation Avion & Bateau
+             ========================================================= -->
+        <div class="auth-visual-column">
+            <!-- Motif grille de points en haut à droite -->
+            <div class="visual-dot-grid"></div>
+
+            <!-- Anneaux orbitaux concentriques (radar de navigation) -->
+            <div class="radar-orbit-container">
+                <div class="radar-ring radar-ring-1"></div>
+                <div class="radar-ring radar-ring-2"></div>
+                <div class="radar-ring radar-ring-3"></div>
+            </div>
+
+            <!-- Réseau de connexions nodales (inspiré de la maquette CAS CONNECT) -->
+            <svg class="network-nodes-svg" viewBox="0 0 600 600" preserveAspectRatio="none">
+                <defs>
+                    <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#0284C7" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+                <!-- Lignes de liaison de fret -->
+                <line x1="300" y1="300" x2="160" y2="180" stroke="rgba(37, 99, 235, 0.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <line x1="300" y1="300" x2="440" y2="180" stroke="rgba(37, 99, 235, 0.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <line x1="300" y1="300" x2="470" y2="340" stroke="rgba(37, 99, 235, 0.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <line x1="300" y1="300" x2="140" y2="340" stroke="rgba(37, 99, 235, 0.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                
+                <!-- Nœuds de réseau lumineux -->
+                <circle cx="160" cy="180" r="5" fill="#38BDF8" opacity="0.8"/>
+                <circle cx="160" cy="180" r="16" fill="url(#nodeGlow)"/>
+                
+                <circle cx="440" cy="180" r="5" fill="#38BDF8" opacity="0.8"/>
+                <circle cx="440" cy="180" r="16" fill="url(#nodeGlow)"/>
+
+                <circle cx="470" cy="340" r="4.5" fill="#10B981" opacity="0.8"/>
+                <circle cx="140" cy="340" r="4.5" fill="#F59E0B" opacity="0.8"/>
+            </svg>
+
+            <!-- Scène principale : Ciel (Avion) + Mer (Porte-conteneurs) -->
+            <div class="transit-stage">
+                <!-- ZONE DU HAUT : AVION CARGO EN PLEIN VOL -->
+                <div class="sky-corridor">
+                    <svg class="sky-corridor-svg" viewBox="0 0 520 190">
+                        <defs>
+                            <linearGradient id="planeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#FFFFFF"/>
+                                <stop offset="100%" stop-color="#E2E8F0"/>
+                            </linearGradient>
+                            <filter id="planeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0284C7" flood-opacity="0.5"/>
+                            </filter>
+                        </defs>
+
+                        <!-- Trajectoire de vol aérienne avec pointillés animés -->
+                        <path class="flight-arc" d="M 10 160 Q 220 30 500 60" fill="none"/>
+
+                        <!-- Balise aéroport départ (DLA Douala) -->
+                        <circle class="airport-waypoint" cx="40" cy="148" r="5" fill="#38BDF8"/>
+                        <circle cx="40" cy="148" r="14" fill="none" stroke="#38BDF8" stroke-width="1" opacity="0.4"/>
+                        <text x="56" y="152" fill="#94A3B8" font-size="11" font-weight="700" letter-spacing="0.5">HUB DOUALA (DLA)</text>
+
+                        <!-- Balise aéroport arrivée (CAN / CDG) -->
+                        <circle class="airport-waypoint" cx="470" cy="62" r="5" fill="#10B981"/>
+                        <circle cx="470" cy="62" r="14" fill="none" stroke="#10B981" stroke-width="1" opacity="0.4"/>
+                        <text x="400" y="44" fill="#94A3B8" font-size="11" font-weight="700" letter-spacing="0.5">INTERNATIONAL</text>
+
+                        <!-- AVION EN VOL (animé le long de la trajectoire) -->
+                        <g class="plane-animator">
+                            <g class="contrail-glow" transform="scale(1.2)">
+                                <!-- Traînée de condensation réacteur -->
+                                <path d="M -16 0 L -60 -2 L -60 2 Z" fill="rgba(56, 189, 248, 0.25)"/>
+                                <circle cx="-14" cy="0" r="3" fill="#38BDF8" opacity="0.9"/>
+                                <!-- Fuselage profil aérodynamique -->
+                                <path d="M -14 0 C -12 -5 18 -5 36 0 C 18 5 -12 5 -14 0 Z" fill="url(#planeGrad)" filter="url(#planeShadow)"/>
+                                <!-- Cockpit -->
+                                <path d="M 24 -1 C 26 -2 30 -2 32 0 C 30 1 26 1 24 -1 Z" fill="#0B1B4A"/>
+                                <!-- Aile principale supérieure -->
+                                <path d="M 4 -3 L -4 -28 L 6 -28 L 18 -3 Z" fill="#E2E8F0"/>
+                                <path d="M 5 -28 L 6 -28 L 16 -3 Z" fill="#2563EB"/>
+                                <!-- Aile inférieure -->
+                                <path d="M 4 3 L -4 28 L 6 28 L 18 3 Z" fill="#CBD5E1"/>
+                                <!-- Dérive arrière (Empennage vertical aux couleurs LCK) -->
+                                <path d="M -12 0 L -18 -16 L -10 -16 L -4 0 Z" fill="#2563EB"/>
+                                <!-- Moteur réacteur sous aile -->
+                                <rect x="2" y="-14" width="12" height="4" rx="2" fill="#64748B"/>
+                            </g>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- ZONE DU BAS : BATEAU PORTE-CONTENEURS SUR VAGUES -->
+                <div class="sea-corridor">
+                    <svg class="sea-corridor-svg" viewBox="0 0 520 210">
+                        <defs>
+                            <linearGradient id="hullGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#0F2942"/>
+                                <stop offset="85%" stop-color="#071B36"/>
+                                <stop offset="100%" stop-color="#DC2626"/>
+                            </linearGradient>
+                            <filter id="waterGlow" x="0" y="0" width="100%" height="100%">
+                                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0EA5E9" flood-opacity="0.3"/>
+                            </filter>
+                        </defs>
+
+                        <!-- Vague de fond -->
+                        <path class="ocean-wave-back" d="M -40 160 Q 90 145 220 160 T 480 160 T 600 160 L 600 210 L -40 210 Z"/>
+
+                        <!-- BATEAU PORTE-CONTENEURS (animé avec tangage marin) -->
+                        <g class="cargo-ship-group">
+                            <!-- Reflet marin sous la coque -->
+                            <ellipse cx="230" cy="172" rx="130" ry="6" fill="rgba(2, 132, 199, 0.25)"/>
+
+                            <!-- Coque du navire de commerce -->
+                            <!-- Étrave / Proue et poupe profilées -->
+                            <path d="M 105 135 L 345 135 L 375 145 L 360 168 L 130 168 L 100 148 Z" fill="url(#hullGrad)" stroke="#1E3A8A" stroke-width="1.2"/>
+                            
+                            <!-- Ligne de flottaison rouge vif -->
+                            <path d="M 125 163 L 362 163 L 358 168 L 130 168 Z" fill="#EF4444"/>
+                            
+                            <!-- Étrave à bulbe sous-marine -->
+                            <circle cx="366" cy="166" r="4.5" fill="#DC2626"/>
+
+                            <!-- Château / Passerelle de navigation (Tour blanche) -->
+                            <rect x="125" y="85" width="46" height="50" rx="3" fill="#FFFFFF"/>
+                            <!-- Vitres de passerelle (bleu azur) -->
+                            <rect x="131" y="93" width="34" height="9" rx="2" fill="#0284C7"/>
+                            <!-- Toit passerelle & Mât radar -->
+                            <rect x="123" y="82" width="50" height="4" rx="2" fill="#CBD5E1"/>
+                            <line x1="148" y1="82" x2="148" y2="60" stroke="#FFFFFF" stroke-width="2.5"/>
+                            <circle cx="148" cy="58" r="3.5" fill="#10B981"/>
+                            <!-- Cheminée d'échappement rouge & noire -->
+                            <rect x="130" y="66" width="12" height="16" rx="2" fill="#DC2626"/>
+                            <rect x="130" y="66" width="12" height="4" rx="1" fill="#0F172A"/>
+                            <!-- Volutes de fumée animée -->
+                            <circle class="chimney-smoke" cx="136" cy="62" r="3.5" fill="rgba(255, 255, 255, 0.65)"/>
+
+                            <!-- EMPILAGE DE CONTENEURS (Fret maritime LCK Services) -->
+                            <!-- Rangée 1 (Conteneurs bleus LCK) -->
+                            <rect x="180" y="112" width="42" height="23" rx="2" fill="#2563EB"/>
+                            <line x1="187" y1="112" x2="187" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="208" y1="112" x2="208" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <rect x="226" y="112" width="42" height="23" rx="2" fill="#1D4ED8"/>
+                            <line x1="233" y1="112" x2="233" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="254" y1="112" x2="254" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <rect x="272" y="112" width="42" height="23" rx="2" fill="#2563EB"/>
+                            <line x1="279" y1="112" x2="279" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="300" y1="112" x2="300" y2="135" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <!-- Rangée 2 (Conteneurs Vert Émeraude & Orange) -->
+                            <rect x="184" y="87" width="42" height="23" rx="2" fill="#10B981"/>
+                            <line x1="191" y1="87" x2="191" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="212" y1="87" x2="212" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <rect x="230" y="87" width="42" height="23" rx="2" fill="#F59E0B"/>
+                            <line x1="237" y1="87" x2="237" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="258" y1="87" x2="258" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <rect x="276" y="87" width="38" height="23" rx="2" fill="#059669"/>
+                            <line x1="283" y1="87" x2="283" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                            <line x1="304" y1="87" x2="304" y2="110" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+
+                            <!-- Rangée 3 (Niveau supérieur) -->
+                            <rect x="190" y="62" width="42" height="23" rx="2" fill="#0284C7"/>
+                            <rect x="236" y="62" width="42" height="23" rx="2" fill="#0B1B4A"/>
+                            <rect x="282" y="68" width="30" height="17" rx="2" fill="#D97706"/>
+
+                            <!-- Grues et mâts de pont -->
+                            <line x1="225" y1="135" x2="225" y2="52" stroke="#CBD5E1" stroke-width="2"/>
+                            <circle cx="225" cy="50" r="3" fill="#F59E0B"/>
+                            
+                            <line x1="320" y1="135" x2="320" y2="60" stroke="#CBD5E1" stroke-width="2"/>
+                            <line x1="320" y1="62" x2="340" y2="90" stroke="#CBD5E1" stroke-width="1.5"/>
+                            <circle cx="320" cy="58" r="3" fill="#10B981"/>
+
+                            <!-- Mousse d'étrave (sillage avant) -->
+                            <path d="M 370 166 Q 385 168 395 165" stroke="rgba(255,255,255,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        </g>
+
+                        <!-- Vagues intermédiaires -->
+                        <path class="ocean-wave-mid" d="M -40 168 Q 80 152 200 168 T 460 168 T 600 168 L 600 210 L -40 210 Z"/>
+
+                        <!-- Vague de premier plan -->
+                        <path class="ocean-wave-front" d="M -40 178 Q 110 164 240 178 T 500 178 T 600 178 L 600 210 L -40 210 Z"/>
+                    </svg>
+                </div>
+
+                <!-- Badges de synthèse en bas -->
+                <div class="stage-chips-bottom">
+                    <span class="transit-chip"><i class="fa fa-ship text-info"></i> Fret Maritime (FCL / LCL)</span>
+                    <span class="transit-chip"><i class="fa fa-plane text-warning"></i> Fret Aérien Express</span>
+                    <span class="transit-chip"><i class="fa fa-cubes text-success"></i> Groupage Douala</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript pour afficher/masquer le mot de passe -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleBtn = document.getElementById('togglePasswordBtn');
+            const passwordInput = document.getElementById('id_password');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
+
+            if (toggleBtn && passwordInput && toggleIcon) {
+                toggleBtn.addEventListener('click', function () {
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggleIcon.classList.remove('fa-eye');
+                        toggleIcon.classList.add('fa-eye-slash');
+                        toggleBtn.setAttribute('title', 'Masquer le mot de passe');
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleIcon.classList.remove('fa-eye-slash');
+                        toggleIcon.classList.add('fa-eye');
+                        toggleBtn.setAttribute('title', 'Afficher le mot de passe');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

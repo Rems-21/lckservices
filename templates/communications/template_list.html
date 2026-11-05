@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Modèles de Messages WhatsApp{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Modèles de Messages Personnalisables</h4>
+        <p class="text-muted small mb-0">Gabarits réutilisables pour les avis de réception, départ, arrivée, facturation et relances.</p>
+    </div>
+    <a href="{% url 'communications:hub' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour WhatsApp</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">{% if editing_instance %}Modifier « {{ editing_instance.name }} »{% else %}Nouveau Modèle{% endif %}</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}<div class="form-text small">{{ field.help_text }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100">Enregistrer le modèle</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="list-group list-group-flush">
+                {% for t in templates_list %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <span class="fw-bold">{{ t.name }}</span>
+                            <span class="badge bg-info-subtle text-info-emphasis ms-1">{{ t.get_category_display }}</span>
+                        </div>
+                        <a href="?edit={{ t.pk }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                    </div>
+                    <pre class="bg-light p-2 rounded small mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ t.body_template }}</pre>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center text-muted">Aucun modèle configuré.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

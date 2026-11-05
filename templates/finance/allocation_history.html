@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Historique des Répartitions Financières{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Historique des Répartitions Financières & Marges</h4>
+        <p class="text-muted small mb-0">Traçabilité complète des calculs de coûts de revient et de rentabilité par dossier.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Référence</th>
+                    <th>Date</th>
+                    <th>Dossier</th>
+                    <th>Méthode</th>
+                    <th class="text-end">Dépenses Dossier</th>
+                    <th class="text-end">CA Commercial</th>
+                    <th class="text-end">Marge Prévue</th>
+                    <th>Auteur</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in runs %}
+                <tr>
+                    <td><a href="{% url 'finance:allocation_detail' r.pk %}" class="fw-bold text-decoration-none">{{ r.reference }}</a></td>
+                    <td class="small text-muted">{{ r.created_at|date:"d/m/Y H:i" }}</td>
+                    <td><a href="{% url 'shipments:detail' r.folder_id %}">{{ r.folder.reference }}</a></td>
+                    <td class="small">{{ r.get_allocation_method_display }}</td>
+                    <td class="text-end">{{ r.total_expenses_fcfa|fcfa }}</td>
+                    <td class="text-end text-primary fw-semibold">{{ r.total_commercial_fcfa|fcfa }}</td>
+                    <td class="text-end fw-bold {% if r.expected_profit_fcfa >= 0 %}text-success{% else %}text-danger{% endif %}">{{ r.expected_profit_fcfa|fcfa }} ({{ r.margin_rate_percent }}%)</td>
+                    <td class="small">{{ r.created_by.display_name|default:"-" }}</td>
+                    <td>{% if r.is_active_run %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-light text-secondary border">Archivée</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Aucune répartition enregistrée. Ouvrez un dossier d'expédition puis cliquez sur « Répartir Coûts & Marges ».</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Classification des Marchandises{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Classification des Marchandises</h4>
+        <p class="text-muted small mb-0">Catégories de marchandises utilisées lors de l'enregistrement des colis.</p>
+    </div>
+    <a href="{% url 'cargo:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour aux colis</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus-circle text-primary me-2"></i>Nouvelle Catégorie</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><label class="form-label small fw-semibold">Nom *</label>{{ form.name }}</div>
+                    <div class="mb-3"><label class="form-label small fw-semibold">Code interne / SH</label>{{ form.code }}</div>
+                    <div class="mb-3"><label class="form-label small fw-semibold">Description</label>{{ form.description }}</div>
+                    <div class="form-check mb-3">
+                        {{ form.is_fragile_or_special }}
+                        <label class="form-check-label small" for="{{ form.is_fragile_or_special.id_for_label }}">Manutention fragile / spéciale</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Code</th>
+                            <th>Spécificité</th>
+                            <th class="text-center">Colis rattachés</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in categories %}
+                        <tr>
+                            <td class="fw-semibold">{{ c.name }}<div class="small text-muted fw-normal">{{ c.description }}</div></td>
+                            <td><code>{{ c.code|default:"-" }}</code></td>
+                            <td>{% if c.is_fragile_or_special %}<span class="badge bg-warning text-dark">Fragile / Spécial</span>{% else %}<span class="badge bg-light text-secondary border">Standard</span>{% endif %}</td>
+                            <td class="text-center"><span class="badge bg-primary-subtle text-primary">{{ c.parcels_count }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">Aucune catégorie enregistrée.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

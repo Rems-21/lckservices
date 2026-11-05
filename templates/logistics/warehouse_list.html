@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Opérations d'Entrepôt & Chargements{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Réceptions, Chargements & Entrepôt</h4>
+        <p class="text-muted small mb-0">Pointage des réceptions origine, opérations d'empotage/chargement et dépotage en entrepôt destination.</p>
+    </div>
+    <a href="{% url 'logistics:hub' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour Tracking</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clipboard-check text-primary me-2"></i>Nouvelle Opération</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|striptags }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100">Valider l'opération</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Réf.</th>
+                            <th>Type</th>
+                            <th>Dossier</th>
+                            <th>Entrepôt / Terminal</th>
+                            <th>Pointage</th>
+                            <th>État</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for op in operations %}
+                        <tr>
+                            <td class="fw-bold">{{ op.reference }}</td>
+                            <td class="small">{{ op.get_operation_type_display }}</td>
+                            <td><a href="{% url 'shipments:detail' op.folder_id %}">{{ op.folder.reference }}</a></td>
+                            <td>{{ op.warehouse_name }}</td>
+                            <td class="small">{{ op.parcels_checked_count }} colis ({{ op.total_weight_checked_kg|num:1 }} kg)</td>
+                            <td><span class="badge bg-light text-dark border">{{ op.get_condition_status_display }}</span></td>
+                            <td class="small text-muted">{{ op.operation_date|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">Aucune opération d'entrepôt enregistrée.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

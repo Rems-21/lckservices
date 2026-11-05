@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}{{ invoice.number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark fs-6">{{ invoice.number }}</span>
+            <h4 class="fw-bold mb-0">{{ invoice.get_invoice_type_display }} — {{ invoice.client.name }}</h4>
+            <span class="badge {{ invoice.status|badge_class }}">{{ invoice.get_status_display }}</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            Émise le {{ invoice.issue_date|date:"d/m/Y" }}
+            {% if invoice.due_date %}• Échéance : {{ invoice.due_date|date:"d/m/Y" }}{% endif %}
+            {% if invoice.folder %}• Dossier : <a href="{% url 'shipments:detail' invoice.folder_id %}">{{ invoice.folder.reference }}</a>{% endif %}
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'documents:invoice_pdf' invoice.pk %}" target="_blank" class="btn btn-sm btn-danger"><i class="bi bi-file-pdf me-1"></i>Imprimer / PDF</a>
+        <a href="{% url 'documents:invoice_pdf' invoice.pk %}?download=1" class="btn btn-sm btn-outline-danger"><i class="bi bi-download me-1"></i>Télécharger</a>
+        <a href="{% url 'communications:hub' %}?invoice={{ invoice.pk }}" class="btn btn-sm btn-success"><i class="bi bi-whatsapp me-1"></i>Partager WhatsApp</a>
+        {% if invoice.invoice_type == 'PROFORMA' %}
+            <form method="post" action="{% url 'billing:convert_proforma' invoice.pk %}" data-confirm="Convertir cette Proforma en Facture Définitive officielle ?" data-confirm-btn="Convertir en Définitive">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-arrow-right-circle me-1"></i>Convertir en Définitive</button>
+            </form>
+        {% endif %}
+        {% if invoice.invoice_type == 'DEFINITIVE' and invoice.is_settled_for_delivery and invoice.folder %}
+            <a href="{% url 'logistics:delivery_create' %}?folder={{ invoice.folder_id }}&client={{ invoice.client_id }}&invoice={{ invoice.pk }}" class="btn btn-sm btn-dark"><i class="bi bi-truck me-1"></i>Émettre Bon de Livraison</a>
+        {% endif %}
+        <a href="{% url 'billing:invoice_edit' invoice.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Lignes de la facture -->
+        <div class="card mb-4">
+            <div class="card-header">Détail des Prestations & Colis Facturés</div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Désignation</th>
+                            <th class="text-end">Quantité</th>
+                            <th>Unité</th>
+                            <th class="text-end">Prix Unitaire</th>
+                            <th class="text-end">Total Ligne</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in lines %}
+                        <tr>
+                            <td>{{ line.description }}</td>
+                            <td class="text-end">{{ line.quantity|num:2 }}</td>
+                            <td class="small text-muted">{{ line.unit_label }}</td>
+                            <td class="text-end">{{ line.unit_price_fcfa|fcfa }}</td>
+                            <td class="text-end fw-semibold">{{ line.line_total_fcfa|fcfa }}</td>
+                            <td class="text-end">
+                                {% if invoice.status != 'PAYEE' and invoice.status != 'ANNULEE' %}
+                                <form method="post" action="{% url 'billing:line_delete' invoice.pk line.pk %}" data-confirm="Supprimer cette ligne de facture ?">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm text-danger p-0"><i class="bi bi-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">Aucune ligne ajoutée. Utilisez le formulaire ci-dessous.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr><td colspan="4" class="text-end">Sous-total HT :</td><td class="text-end fw-semibold">{{ invoice.subtotal_fcfa|fcfa }}</td><td></td></tr>
+                        {% if invoice.discount_fcfa > 0 %}
+                        <tr><td colspan="4" class="text-end text-success">Remise commerciale :</td><td class="text-end text-success">- {{ invoice.discount_fcfa|fcfa }}</td><td></td></tr>
+                        {% endif %}
+                        {% if invoice.tax_amount_fcfa > 0 %}
+                        <tr><td colspan="4" class="text-end">Taxe / TVA ({{ invoice.tax_rate_percent }}%) :</td><td class="text-end">{{ invoice.tax_amount_fcfa|fcfa }}</td><td></td></tr>
+                        {% endif %}
+                        <tr class="fs-6"><td colspan="4" class="text-end fw-bold">NET À PAYER TTC :</td><td class="text-end fw-bold text-primary">{{ invoice.total_amount_fcfa|fcfa }}</td><td></td></tr>
+                        {% if invoice.invoice_type == 'DEFINITIVE' %}
+                        <tr><td colspan="4" class="text-end text-success">Montant encaissé :</td><td class="text-end fw-semibold text-success">{{ invoice.paid_amount_fcfa|fcfa }}</td><td></td></tr>
+                        <tr><td colspan="4" class="text-end fw-bold">SOLDE RESTANT DÛ :</td><td class="text-end fw-bold {% if invoice.balance_due_fcfa > 0 %}text-danger{% else %}text-success{% endif %}">{{ invoice.balance_due_fcfa|fcfa }}</td><td></td></tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+
+            {% if invoice.status != 'PAYEE' and invoice.status != 'ANNULEE' %}
+            <div class="card-footer bg-white">
+                <h6 class="small fw-bold text-secondary mb-2">Ajouter une ligne de facturation</h6>
+                <form method="post" action="{% url 'billing:line_add' invoice.pk %}" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-md-5"><label class="form-label small mb-1">Désignation *</label>{{ line_form.description }}</div>
+                    <div class="col-md-2"><label class="form-label small mb-1">Qté</label>{{ line_form.quantity }}</div>
+                    <div class="col-md-2"><label class="form-label small mb-1">Unité</label>{{ line_form.unit_label }}</div>
+                    <div class="col-md-2"><label class="form-label small mb-1">P.U. (FCFA)</label>{{ line_form.unit_price_fcfa }}</div>
+                    <div class="col-md-1"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button></div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Colonne Encaissements & Crédit -->
+    <div class="col-lg-4">
+        {% if invoice.invoice_type == 'DEFINITIVE' and invoice.balance_due_fcfa > 0 and invoice.status != 'ANNULEE' %}
+        <div class="card mb-4 border-success-subtle">
+            <div class="card-header bg-success-subtle text-success"><i class="bi bi-wallet2 me-2"></i>Enregistrer un Paiement</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'billing:payment_list' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="from_invoice" value="1">
+                    <div class="d-none">{{ payment_form.invoice }}</div>
+                    <div class="mb-2"><label class="form-label small fw-semibold">Montant encaissé (FCFA) *</label>{{ payment_form.amount_fcfa }}</div>
+                    <div class="mb-2"><label class="form-label small fw-semibold">Mode de paiement</label>{{ payment_form.payment_method }}</div>
+                    <div class="mb-2"><label class="form-label small fw-semibold">Date</label>{{ payment_form.payment_date }}</div>
+                    <div class="mb-3"><label class="form-label small fw-semibold">Référence transaction</label>{{ payment_form.transaction_reference }}</div>
+                    <button type="submit" class="btn btn-success w-100 fw-semibold"><i class="bi bi-check2-circle me-1"></i>Valider & Générer le Reçu</button>
+                </form>
+                <div class="mt-2 text-center">
+                    <a href="{% url 'billing:receivables' %}?invoice={{ invoice.pk }}" class="small text-warning-emphasis">
+                        <i class="bi bi-shield-check me-1"></i>Accorder une autorisation de livraison à crédit
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Reçus de Paiement Associés</div>
+            <div class="list-group list-group-flush">
+                {% for pay in payments %}
+                <div class="list-group-item d-flex justify-content-between align-items-center small">
+                    <div>
+                        <div class="fw-bold">{{ pay.receipt_number }} — {{ pay.amount_fcfa|fcfa }}</div>
+                        <div class="text-muted">{{ pay.payment_date|date:"d/m/Y" }} • {{ pay.get_payment_method_display }}</div>
+                    </div>
+                    <a href="{% url 'documents:receipt_pdf' pay.pk %}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-printer"></i> Reçu</a>
+                </div>
+                {% empty %}
+                <div class="p-3 text-center text-muted small">Aucun règlement enregistré sur cette facture.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

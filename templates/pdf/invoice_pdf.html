@@ -1,0 +1,143 @@
+{% load lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>{{ invoice.number }}</title>
+    <style>
+        @page { size: A4; margin: 1.3cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #1e293b; line-height: 1.4; }
+        table { width: 100%; border-collapse: collapse; }
+        .header-box { border-bottom: 3px solid #0f2942; padding-bottom: 12px; margin-bottom: 16px; }
+        .company-title { font-size: 16pt; font-weight: bold; color: #0f2942; }
+        .doc-badge { font-size: 13pt; font-weight: bold; color: #0284c7; text-align: right; }
+        .info-box { background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 16px; }
+        .items-table th { background-color: #0f2942; color: #ffffff; font-size: 9pt; padding: 7px; text-align: left; }
+        .items-table td { border-bottom: 1px solid #e2e8f0; padding: 7px; font-size: 9.5pt; }
+        .totals-table td { padding: 5px 8px; }
+        .total-highlight { background-color: #e0f2fe; font-weight: bold; font-size: 11pt; color: #0f2942; }
+        .footer { margin-top: 28px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 8.5pt; color: #64748b; }
+    </style>
+</head>
+<body>
+    <table class="header-box">
+        <tr>
+            <td style="width: 68%; vertical-align: top;">
+                <div class="company-title">{{ company.name }}</div>
+                <div style="font-size: 9pt; color: #475569;">{{ company.slogan }}</div>
+                <div style="font-size: 8.5pt; color: #64748b; margin-top: 4px;">
+                    {{ company.address }} — Tél : {{ company.phone }} {% if company.email %}• {{ company.email }}{% endif %}
+                    {% if company.niu %}<br>NIU : {{ company.niu }} {% if company.rccm %}| RCCM : {{ company.rccm }}{% endif %}{% endif %}
+                </div>
+            </td>
+            <td style="width: 32%; text-align: right; vertical-align: top;">
+                <div class="doc-badge">{{ invoice.get_invoice_type_display|upper }}</div>
+                <div style="font-size: 11pt; font-weight: bold; margin-top: 4px;">N° {{ invoice.number }}</div>
+                <div style="font-size: 9pt; color: #475569;">Date : {{ invoice.issue_date|date:"d/m/Y" }}</div>
+                {% if invoice.due_date %}<div style="font-size: 9pt; color: #dc2626;">Échéance : {{ invoice.due_date|date:"d/m/Y" }}</div>{% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="info-box">
+        <tr>
+            <td style="width: 55%; vertical-align: top;">
+                <strong>FACTURÉ À :</strong><br>
+                <span style="font-size: 11pt; font-weight: bold;">{{ invoice.client.name }}</span> ({{ invoice.client.code }})<br>
+                Tél : {{ invoice.client.phone }}<br>
+                {{ invoice.client.address }} {{ invoice.client.city }}, {{ invoice.client.country }}
+            </td>
+            <td style="width: 45%; vertical-align: top;">
+                <strong>RÉFÉRENCES EXPÉDITION :</strong><br>
+                {% if invoice.folder %}
+                    Dossier : <strong>{{ invoice.folder.reference }}</strong> ({{ invoice.folder.get_transport_mode_display }})<br>
+                    Trajet : {{ invoice.folder.origin.city }} &raquo; {{ invoice.folder.destination.city }}<br>
+                    {{ invoice.folder.transport_doc_ref }}
+                {% else %}
+                    Facturation directe hors dossier
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table" style="margin-bottom: 16px;">
+        <thead>
+            <tr>
+                <th style="width: 52%;">Désignation des marchandises / prestations</th>
+                <th style="width: 12%; text-align: right;">Quantité</th>
+                <th style="width: 10%;">Unité</th>
+                <th style="width: 13%; text-align: right;">Prix Unitaire</th>
+                <th style="width: 13%; text-align: right;">Montant FCFA</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td>{{ line.description }}</td>
+                <td style="text-align: right;">{{ line.quantity|num:2 }}</td>
+                <td>{{ line.unit_label }}</td>
+                <td style="text-align: right;">{{ line.unit_price_fcfa|num:0 }}</td>
+                <td style="text-align: right; font-weight: bold;">{{ line.line_total_fcfa|num:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table>
+        <tr>
+            <td style="width: 45%; vertical-align: top;">
+                <img src="{{ qr_code }}" width="95" height="95" alt="QR Verification"><br>
+                <span style="font-size: 7.5pt; color: #64748b;">Code QR de vérification d'authenticité</span>
+                {% if company.bank_details %}
+                <div style="margin-top: 8px; font-size: 8.5pt;">
+                    <strong>Règlement :</strong><br>{{ company.bank_details }}
+                </div>
+                {% endif %}
+            </td>
+            <td style="width: 55%; vertical-align: top;">
+                <table class="totals-table" style="border: 1px solid #cbd5e1;">
+                    <tr>
+                        <td>Sous-total HT :</td>
+                        <td style="text-align: right;">{{ invoice.subtotal_fcfa|fcfa }}</td>
+                    </tr>
+                    {% if invoice.discount_fcfa > 0 %}
+                    <tr>
+                        <td>Remise commerciale :</td>
+                        <td style="text-align: right;">- {{ invoice.discount_fcfa|fcfa }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if invoice.tax_amount_fcfa > 0 %}
+                    <tr>
+                        <td>Taxe / TVA ({{ invoice.tax_rate_percent }}%) :</td>
+                        <td style="text-align: right;">{{ invoice.tax_amount_fcfa|fcfa }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="total-highlight">
+                        <td>NET À PAYER TTC :</td>
+                        <td style="text-align: right;">{{ invoice.total_amount_fcfa|fcfa }}</td>
+                    </tr>
+                    {% if invoice.invoice_type == 'DEFINITIVE' %}
+                    <tr>
+                        <td>Montant déjà réglé :</td>
+                        <td style="text-align: right; color: #059669;">{{ invoice.paid_amount_fcfa|fcfa }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SOLDE RESTANT DÛ :</strong></td>
+                        <td style="text-align: right; font-weight: bold; color: #dc2626;">{{ invoice.balance_due_fcfa|fcfa }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    {% if invoice.notes %}
+    <div style="margin-top: 14px; font-size: 9pt;"><strong>Observations :</strong> {{ invoice.notes }}</div>
+    {% endif %}
+
+    <div class="footer">
+        {{ company.invoice_footer_note }}<br>
+        Document généré le {{ generated_at|date:"d/m/Y à H:i" }} — {{ company.name }}.
+    </div>
+</body>
+</html>

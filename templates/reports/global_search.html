@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Recherche Globale{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">Résultats de recherche pour « {{ q }} »</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Dossiers d'Expédition ({{ folders|length }})</div>
+            <div class="list-group list-group-flush">
+                {% for f in folders %}
+                <a href="{% url 'shipments:detail' f.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+                    <span><strong>{{ f.reference }}</strong> — {{ f.origin.city }} → {{ f.destination.city }}</span>
+                    <span class="badge {{ f.status|badge_class }}">{{ f.get_status_display }}</span>
+                </a>
+                {% empty %}<div class="p-3 text-muted small">Aucun dossier correspondant.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Colis & Marchandises ({{ parcels|length }})</div>
+            <div class="list-group list-group-flush">
+                {% for p in parcels %}
+                <a href="{% url 'cargo:detail' p.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+                    <span><strong>{{ p.parcel_code }}</strong> — {{ p.description }} ({{ p.client.name }})</span>
+                    <span class="badge {{ p.status|badge_class }}">{{ p.get_status_display }}</span>
+                </a>
+                {% empty %}<div class="p-3 text-muted small">Aucun colis correspondant.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Clients ({{ clients|length }})</div>
+            <div class="list-group list-group-flush">
+                {% for c in clients %}
+                <a href="{% url 'clients:detail' c.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+                    <span><strong>{{ c.code }}</strong> — {{ c.name }}</span>
+                    <span class="small text-muted">{{ c.phone }}</span>
+                </a>
+                {% empty %}<div class="p-3 text-muted small">Aucun client correspondant.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Factures ({{ invoices|length }})</div>
+            <div class="list-group list-group-flush">
+                {% for inv in invoices %}
+                <a href="{% url 'billing:invoice_detail' inv.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+                    <span><strong>{{ inv.number }}</strong> — {{ inv.client.name }}</span>
+                    <span class="fw-bold">{{ inv.total_amount_fcfa|fcfa }}</span>
+                </a>
+                {% empty %}<div class="p-3 text-muted small">Aucune facture correspondante.</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

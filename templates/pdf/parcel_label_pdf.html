@@ -1,0 +1,44 @@
+{% load lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Étiquette {{ parcel.parcel_code }}</title>
+    <style>
+        @page { size: A5; margin: 1cm; }
+        body { font-family: Helvetica, Arial, sans-serif; color: #0f172a; }
+        .label-card { border: 3px solid #0f2942; padding: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        .big-code { font-size: 20pt; font-weight: bold; color: #0f2942; text-align: center; background-color: #f1f5f9; padding: 8px; margin: 10px 0; border: 1px dashed #0f2942; }
+    </style>
+</head>
+<body>
+    <div class="label-card">
+        <table>
+            <tr>
+                <td>
+                    <div style="font-size: 13pt; font-weight: bold;">{{ company.name }}</div>
+                    <div style="font-size: 9pt;">{{ parcel.folder.get_transport_mode_display|upper }} — Dossier {{ parcel.folder.reference }}</div>
+                </td>
+                <td style="text-align: right; font-size: 12pt; font-weight: bold;">
+                    {{ parcel.folder.origin.code }} &raquo; {{ parcel.folder.destination.code }}
+                </td>
+            </tr>
+        </table>
+
+        <div class="big-code">{{ parcel.parcel_code }}</div>
+
+        <table style="font-size: 10pt; margin-bottom: 10px;">
+            <tr><td style="padding: 4px 0;"><strong>DESTINATAIRE :</strong></td><td><strong>{{ parcel.client.name }}</strong> ({{ parcel.client.phone }})</td></tr>
+            <tr><td style="padding: 4px 0;"><strong>MARCHANDISE :</strong></td><td>{{ parcel.description }}</td></tr>
+            <tr><td style="padding: 4px 0;"><strong>COLISAGE :</strong></td><td>{{ parcel.quantity }} × {{ parcel.get_packaging_type_display }}</td></tr>
+            <tr><td style="padding: 4px 0;"><strong>CUBAGE / POIDS :</strong></td><td><strong>{{ parcel.volume_cbm|num:4 }} m³</strong> / <strong>{{ parcel.weight_kg|num:2 }} kg</strong></td></tr>
+        </table>
+
+        <div style="text-align: center; margin-top: 8px;">
+            <img src="{{ qr_code }}" width="120" height="120" alt="QR"><br>
+            <span style="font-size: 8pt; color: #475569;">Scanner pour vérifier l'acheminement</span>
+        </div>
+    </div>
+</body>
+</html>

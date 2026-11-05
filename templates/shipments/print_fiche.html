@@ -1,0 +1,264 @@
+{% load static lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche Récapitulative — {{ folder.reference }} | LCK Services SARL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F1F5F9;
+            color: #0F172A;
+            margin: 0;
+            padding: 24px;
+            font-size: 12px;
+        }
+        .sheet {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: #FFFFFF;
+            padding: 28px 32px;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+        .toolbar {
+            max-width: 210mm;
+            margin: 0 auto 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-act {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            border: 1px solid #CBD5E1;
+            background: #FFF;
+            color: #0F172A;
+            cursor: pointer;
+        }
+        .btn-primary-act { background: #2563EB; border-color: #2563EB; color: #FFF; }
+        .hdr {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0B1B4A;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+        .co-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: #0B1B4A; margin: 0; }
+        .doc-badge {
+            background: #EFF6FF;
+            color: #1D4ED8;
+            border: 1px solid #BFDBFE;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .info-box {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .info-box .lbl { font-size: 10px; text-transform: uppercase; color: #64748B; font-weight: 600; }
+        .info-box .val { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
+        h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13.5px;
+            text-transform: uppercase;
+            color: #0B1B4A;
+            border-left: 3px solid #2563EB;
+            padding-left: 8px;
+            margin: 18px 0 8px;
+        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        th {
+            background: #F1F5F9;
+            color: #334155;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            padding: 7px 8px;
+            text-align: left;
+            border-bottom: 1.5px solid #CBD5E1;
+        }
+        td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #E2E8F0;
+            font-size: 11.5px;
+        }
+        .text-end { text-align: right; }
+        .bilan-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .bilan-card {
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        @media print {
+            body { background: #FFF; padding: 0; }
+            .toolbar { display: none !important; }
+            .sheet { box-shadow: none; padding: 10px; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="{% url 'shipments:detail' folder.pk %}" class="btn-act">← Retour au dossier</a>
+        <div style="display:flex;gap:8px;">
+            <a href="{% url 'documents:manifest_pdf' folder.pk %}" class="btn-act">Télécharger Manifeste PDF</a>
+            <button onclick="window.print()" class="btn-act btn-primary-act">Imprimer la Fiche (A4)</button>
+        </div>
+    </div>
+
+    <div class="sheet">
+        <div class="hdr">
+            <div style="display:flex;gap:12px;align-items:center;">
+                <img src="{% static 'img/logo.jpg' %}" alt="LCK" width="48" height="48" style="object-fit: contain; border-radius: 6px; background: #fff;">
+                <div>
+                    <h1 class="co-title">{{ company.name }}</h1>
+                    <div style="color:#475569;font-size:11px;">{{ company.slogan }}</div>
+                    <div style="color:#64748B;font-size:10.5px;">{{ company.address }} • Tél : {{ company.phone }} • {{ company.email }}</div>
+                </div>
+            </div>
+            <div style="text-align:right;display:flex;gap:12px;align-items:center;">
+                <div>
+                    <div class="doc-badge">FICHE RÉCAPITULATIVE GROUPAGE</div>
+                    <div style="font-weight:700;font-size:14px;margin-top:4px;">{{ folder.reference }}</div>
+                    <div style="font-size:10.5px;color:#64748B;">Édité le {{ generated_at|date:"d/m/Y à H:i" }}</div>
+                </div>
+                <img src="{{ qr_code }}" alt="QR" width="64" height="64">
+            </div>
+        </div>
+
+        <div class="grid-4">
+            <div class="info-box">
+                <div class="lbl">Mode &amp; Statut</div>
+                <div class="val">{{ folder.get_transport_mode_display }} • {{ folder.get_status_display }}</div>
+            </div>
+            <div class="info-box">
+                <div class="lbl">Trajet</div>
+                <div class="val">{{ folder.origin.city }} → {{ folder.destination.city }}</div>
+            </div>
+            <div class="info-box">
+                <div class="lbl">Conteneur / Vol &amp; B/L / AWB</div>
+                <div class="val">
+                    {% if folder.transport_mode == 'MARITIME' %}
+                        {{ folder.container_number|default:"—" }} / {{ folder.bl_number|default:"—" }}
+                    {% else %}
+                        {{ folder.flight_number|default:"—" }} / {{ folder.awb_number|default:"—" }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="lbl">Dates ETD / ETA</div>
+                <div class="val">{{ folder.departure_date|date:"d/m/Y"|default:"—" }} → {{ folder.arrival_estimated_date|date:"d/m/Y"|default:"—" }}</div>
+            </div>
+        </div>
+
+        <h3>1. Manifeste des Colis &amp; Facturation Clients ({{ parcels|length }})</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Client &amp; Tél.</th>
+                    <th>Désignation</th>
+                    <th>Qté / Mesures</th>
+                    <th class="text-end">Facturé</th>
+                    <th class="text-end">Payé</th>
+                    <th class="text-end">Reste</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in parcels %}
+                <tr>
+                    <td><strong>{{ p.parcel_code }}</strong></td>
+                    <td>{{ p.client.name }}<br><span style="color:#64748B;font-size:10px;">{{ p.client.phone }}</span></td>
+                    <td>{{ p.description }}{% if p.chassis_number %} (VIN: {{ p.chassis_number }}){% endif %}</td>
+                    <td>{{ p.quantity }} u • {{ p.volume_cbm|num:3 }} m³ • {{ p.weight_kg|num:1 }} kg</td>
+                    <td class="text-end">{{ p.suggested_price_fcfa|fcfa_num }}</td>
+                    <td class="text-end">{{ p.paid_amount_fcfa|fcfa_num }}</td>
+                    <td class="text-end"><strong>{{ p.balance_due_fcfa|fcfa_num }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="text-align:center;color:#64748B;">Aucun colis enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>2. Frais Opérationnels Engagés ({{ expenses|length }})</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Réf.</th>
+                    <th>Date</th>
+                    <th>Catégorie</th>
+                    <th>Libellé / Prestataire</th>
+                    <th class="text-end">Montant Devise</th>
+                    <th class="text-end">Montant FCFA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expenses %}
+                <tr>
+                    <td>{{ e.reference }}</td>
+                    <td>{{ e.expense_date|date:"d/m/Y" }}</td>
+                    <td>{{ e.category.name }}</td>
+                    <td>{{ e.label }}{% if e.vendor_name %} ({{ e.vendor_name }}){% endif %}</td>
+                    <td class="text-end">{{ e.amount_original|num:2 }} {{ e.currency.code }}</td>
+                    <td class="text-end"><strong>{{ e.amount_fcfa|fcfa_num }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align:center;color:#64748B;">Aucun frais enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>3. Synthèse Financière du Dossier (FCFA)</h3>
+        <div class="bilan-grid">
+            <div class="bilan-card">
+                <div style="font-size:10px;color:#64748B;">TOTAL FRAIS</div>
+                <div style="font-weight:700;font-size:13px;color:#DC2626;margin-top:3px;">{{ total_frais|fcfa }}</div>
+            </div>
+            <div class="bilan-card">
+                <div style="font-size:10px;color:#64748B;">FACTURÉ CLIENTS</div>
+                <div style="font-weight:700;font-size:13px;color:#0F172A;margin-top:3px;">{{ total_billed|fcfa }}</div>
+            </div>
+            <div class="bilan-card">
+                <div style="font-size:10px;color:#64748B;">ENCAISSÉ</div>
+                <div style="font-weight:700;font-size:13px;color:#16A34A;margin-top:3px;">{{ total_paid|fcfa }}</div>
+            </div>
+            <div class="bilan-card">
+                <div style="font-size:10px;color:#64748B;">RESTE À RECOUVRER</div>
+                <div style="font-weight:700;font-size:13px;color:#D97706;margin-top:3px;">{{ reste_recouvrer|fcfa }}</div>
+            </div>
+            <div class="bilan-card" style="background:#EFF6FF;border-color:#BFDBFE;">
+                <div style="font-size:10px;color:#1D4ED8;font-weight:600;">RÉSULTAT LATENT</div>
+                <div style="font-weight:700;font-size:13px;color:#1D4ED8;margin-top:3px;">{{ benefice_latent|fcfa }}</div>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:36px;padding-top:14px;border-top:1px dashed #CBD5E1;font-size:11px;color:#475569;">
+            <div>Visa Service Opérations &amp; Transit<br><br><br>___________________________</div>
+            <div style="text-align:right;">Visa Direction / Comptabilité LCK Services SARL<br><br><br>___________________________</div>
+        </div>
+    </div>
+</body>
+</html>

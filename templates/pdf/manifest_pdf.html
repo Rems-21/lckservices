@@ -1,0 +1,71 @@
+{% load lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Manifeste {{ folder.reference }}</title>
+    <style>
+        @page { size: A4 landscape; margin: 1.2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1e293b; }
+        table { width: 100%; border-collapse: collapse; }
+        .header { border-bottom: 2px solid #0f2942; padding-bottom: 8px; margin-bottom: 12px; }
+        .grid th { background-color: #0f2942; color: #fff; padding: 6px; font-size: 8.5pt; text-align: left; }
+        .grid td { border: 1px solid #cbd5e1; padding: 5px 6px; font-size: 8.5pt; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td style="width: 65%;">
+                <div style="font-size: 14pt; font-weight: bold; color: #0f2942;">{{ company.name }} — MANIFESTE D'EXPÉDITION / GROUPAGE</div>
+                <div>Dossier : <strong>{{ folder.reference }}</strong> ({{ folder.get_transport_mode_display }}) • {{ folder.origin.name }} &raquo; {{ folder.destination.name }}</div>
+                <div style="font-size: 8.5pt; color: #475569;">{{ folder.transport_doc_ref }} • {{ folder.carrier_summary }} • Départ : {{ folder.atd|default:folder.etd|date:"d/m/Y"|default:"-" }} • Arrivée : {{ folder.ata|default:folder.eta|date:"d/m/Y"|default:"-" }}</div>
+            </td>
+            <td style="width: 35%; text-align: right;">
+                <img src="{{ qr_code }}" width="68" height="68" alt="QR">
+            </td>
+        </tr>
+    </table>
+
+    <table class="grid">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Code Colis</th>
+                <th>Client & Téléphone</th>
+                <th>Désignation de la Marchandise</th>
+                <th>Catégorie</th>
+                <th style="text-align: center;">Qté</th>
+                <th style="text-align: right;">Dimensions (cm)</th>
+                <th style="text-align: right;">Volume (m³)</th>
+                <th style="text-align: right;">Poids (kg)</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in parcels %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ p.parcel_code }}</strong></td>
+                <td>{{ p.client.name }}<br><span style="color: #64748b;">{{ p.client.phone }}</span></td>
+                <td>{{ p.description }} ({{ p.get_packaging_type_display }})</td>
+                <td>{{ p.category.name|default:"-" }}</td>
+                <td style="text-align: center;">{{ p.quantity }}</td>
+                <td style="text-align: right;">{{ p.length_cm }}×{{ p.width_cm }}×{{ p.height_cm }}</td>
+                <td style="text-align: right; font-weight: bold;">{{ p.volume_cbm|num:4 }}</td>
+                <td style="text-align: right;">{{ p.weight_kg|num:2 }}</td>
+                <td>{{ p.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background-color: #f1f5f9; font-weight: bold;">
+                <td colspan="5" style="text-align: right;">TOTAUX DU MANIFESTE :</td>
+                <td style="text-align: center;">{{ folder.total_units_count }}</td>
+                <td></td>
+                <td style="text-align: right;">{{ folder.total_volume_cbm|num:4 }} m³</td>
+                <td style="text-align: right;">{{ folder.total_weight_kg|num:2 }} kg</td>
+                <td>{{ folder.total_parcels_count }} lot(s)</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

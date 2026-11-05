@@ -1,0 +1,311 @@
+{% load static lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}LCK Services SARL — Transit &amp; Groupage{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/jpeg" href="{% static 'img/logo.jpg' %}">
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 4.7 (style MyTV Inventory) + Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- DataTables Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    <!-- Thème LCK Services SARL (Style MyTV Simple & Efficace) -->
+    <link rel="stylesheet" href="{% static 'css/index.css' %}?v=8">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Barre de navigation supérieure -->
+    <nav class="tv-navbar" role="navigation">
+        <div class="tv-navbar-left">
+            <button type="button" class="tv-mobile-toggle" id="sidebarToggleBtn" aria-label="Menu">
+                <i class="fa fa-bars"></i>
+            </button>
+            <a href="{% url 'reports:dashboard' %}" class="tv-navbar-brand">
+                <img src="{% static 'img/logo.jpg' %}" alt="LCK Services SARL">
+                <div>
+                    <span class="brand-title">LCK Services SARL</span>
+                    <span class="brand-sub d-none d-sm-block">Transit &amp; Groupage Maritime et Aérien</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Recherche globale rapide centrée -->
+        <div class="tv-navbar-center">
+            <div class="tv-search-wrapper">
+                <form action="{% url 'reports:global_search' %}" method="get" autocomplete="off" class="m-0">
+                    <input type="text"
+                           name="q"
+                           id="navbarSearchInput"
+                           class="tv-search-input"
+                           placeholder="Rechercher dossier, colis, client, B/L..."
+                           value="{{ request.GET.q|default:'' }}">
+                    <i class="fa fa-search tv-search-icon"></i>
+                </form>
+                <div id="navbarSearchResults" class="search-results-dropdown d-none"></div>
+            </div>
+        </div>
+
+        <div class="tv-navbar-right">
+            <!-- Notifications -->
+            <a href="{% url 'reports:notifications' %}" class="tv-nav-notif" title="Notifications &amp; Alertes">
+                <i class="fa fa-bell-o"></i>
+                <span id="notifBadge" class="notif-count d-none">0</span>
+            </a>
+
+            <!-- Profil utilisateur -->
+            <a href="{% url 'accounts:profile' %}" class="tv-user-link" title="Mon Profil">
+                <span class="tv-user-avatar"><i class="fa fa-user"></i></span>
+                <span class="d-none d-md-inline"><strong>{{ request.user.display_name }}</strong></span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="template-page-wrapper">
+        <!-- Menu latéral gauche simple et direct -->
+        {% with ns=request.resolver_match.namespace url_name=request.resolver_match.url_name %}
+        <aside class="tv-sidebar" id="tvSidebar">
+            <div class="tv-sidebar-section">Opérations</div>
+            <ul class="tv-sidebar-menu">
+                <li class="{% if ns == 'reports' and url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'reports:dashboard' %}"><i class="fa fa-home"></i> Tableau de bord</a>
+                </li>
+                <li class="{% if ns == 'shipments' %}active{% endif %}">
+                    <a href="{% url 'shipments:list' %}"><i class="fa fa-ship"></i> Dossiers Groupage</a>
+                </li>
+                <li class="{% if ns == 'cargo' %}active{% endif %}">
+                    <a href="{% url 'cargo:list' %}"><i class="fa fa-cubes"></i> Marchandises &amp; Colis</a>
+                </li>
+                <li class="{% if ns == 'clients' %}active{% endif %}">
+                    <a href="{% url 'clients:list' %}"><i class="fa fa-users"></i> Clients</a>
+                </li>
+            </ul>
+
+            <div class="tv-sidebar-section mt-2">Finances &amp; Documents</div>
+            <ul class="tv-sidebar-menu">
+                <li class="{% if ns == 'finance' %}active{% endif %}">
+                    <a href="{% url 'finance:expense_list' %}"><i class="fa fa-calculator"></i> Dépenses &amp; Frais</a>
+                </li>
+                <li class="{% if ns == 'billing' %}active{% endif %}">
+                    <a href="{% url 'billing:invoice_list' %}"><i class="fa fa-file-text-o"></i> Facturation &amp; Paiements</a>
+                </li>
+                <li class="{% if ns == 'documents' %}active{% endif %}">
+                    <a href="{% url 'documents:list' %}"><i class="fa fa-folder-open-o"></i> Documents (GED)</a>
+                </li>
+                <li class="{% if ns == 'communications' %}active{% endif %}">
+                    <a href="{% url 'communications:hub' %}"><i class="fa fa-whatsapp"></i> Messagerie WhatsApp</a>
+                </li>
+                <li class="{% if ns == 'reports' and url_name == 'hub' %}active{% endif %}">
+                    <a href="{% url 'reports:hub' %}"><i class="fa fa-pie-chart"></i> Rapports &amp; Exports</a>
+                </li>
+            </ul>
+
+            <div class="tv-sidebar-section mt-2">Administration</div>
+            <ul class="tv-sidebar-menu">
+                {% if request.user.can_manage_accounts %}
+                <li class="{% if ns == 'accounts' and url_name == 'user_list' %}active{% endif %}">
+                    <a href="{% url 'accounts:user_list' %}"><i class="fa fa-user-plus"></i> Utilisateurs</a>
+                </li>
+                <li class="{% if ns == 'accounts' and url_name == 'settings_backups' %}active{% endif %}">
+                    <a href="{% url 'accounts:settings_backups' %}"><i class="fa fa-database"></i> Paramètres &amp; Backups</a>
+                </li>
+                {% endif %}
+                <li class="{% if ns == 'accounts' and url_name == 'audit_list' %}active{% endif %}">
+                    <a href="{% url 'accounts:audit_list' %}"><i class="fa fa-history"></i> Journal d'Audit</a>
+                </li>
+                <li class="{% if ns == 'accounts' and url_name == 'profile' %}active{% endif %}">
+                    <a href="{% url 'accounts:profile' %}"><i class="fa fa-user"></i> Mon Profil</a>
+                </li>
+                <li class="logout-item">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#confirmLogoutModal">
+                        <i class="fa fa-sign-out"></i> Déconnexion
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        {% endwith %}
+
+        <!-- Zone de contenu principale -->
+        <main class="tv-content-wrapper">
+            <div class="tv-content">
+                <ol class="tv-breadcrumb">
+                    <li><a href="{% url 'reports:dashboard' %}"><i class="fa fa-home"></i> Accueil</a></li>
+                    <li class="active" id="tvBreadcrumbCurrent">{% block page_title %}Vue d'ensemble{% endblock %}</li>
+                </ol>
+
+                {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show py-2 px-3 mb-2" role="alert">
+                        <i class="fa {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} me-1"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Confirmation Déconnexion (Style MyTV) -->
+    <div class="modal fade" id="confirmLogoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-sign-out me-2"></i>Déconnexion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    Voulez-vous vraiment vous déconnecter de votre session <strong>LCK Services SARL</strong> ?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Non</button>
+                    <form method="post" action="{% url 'accounts:logout' %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Oui, me déconnecter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="tv-footer">
+        <p>Copyright &copy; {% now "Y" %} <strong>LCK Services SARL</strong> — Plateforme de Gestion du Transit &amp; Groupage Maritime et Aérien</p>
+    </footer>
+
+    <!-- Librairies JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'js/lck-app.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Initialisation automatique DataTables en français (style MyTV)
+            $('.data-table').each(function () {
+                if (!$.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable({
+                        pageLength: 10,
+                        ordering: false,
+                        language: {
+                            processing: "Traitement en cours...",
+                            search: "Rechercher :",
+                            lengthMenu: "Afficher _MENU_ éléments",
+                            info: "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
+                            infoEmpty: "Aucun élément à afficher",
+                            infoFiltered: "(filtré sur _MAX_ éléments au total)",
+                            loadingRecords: "Chargement...",
+                            zeroRecords: "Aucun résultat correspondant trouvé",
+                            emptyTable: "Aucune donnée disponible dans ce tableau",
+                            paginate: {
+                                first: "Premier",
+                                previous: "Précédent",
+                                next: "Suivant",
+                                last: "Dernier"
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Menu mobile
+            $('#sidebarToggleBtn').on('click', function () {
+                $('#tvSidebar').toggleClass('open');
+            });
+
+            // Synchronisation automatique du fil d'Ariane pour les pages secondaires
+            var bcCur = document.getElementById('tvBreadcrumbCurrent');
+            if (bcCur && bcCur.textContent.trim() === "Vue d'ensemble" && document.title) {
+                bcCur.textContent = document.title.split('—')[0].trim();
+            }
+
+            // Badge notifications
+            fetch("{% url 'reports:notifications_count_api' %}")
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (d && d.unread > 0) {
+                        $('#notifBadge').text(d.unread > 99 ? '99+' : d.unread).removeClass('d-none');
+                    }
+                })
+                .catch(function () {});
+
+            // Recherche rapide en direct dans la barre du haut
+            var searchInput = document.getElementById('navbarSearchInput');
+            var searchDropdown = document.getElementById('navbarSearchResults');
+            var searchTimer = null;
+            if (searchInput && searchDropdown) {
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(searchTimer);
+                    var q = searchInput.value.trim();
+                    if (q.length < 2) {
+                        searchDropdown.classList.add('d-none');
+                        return;
+                    }
+                    searchTimer = setTimeout(function () {
+                        fetch("{% url 'reports:search_api' %}?q=" + encodeURIComponent(q))
+                            .then(function (r) { return r.json(); })
+                            .then(function (data) {
+                                if (!data.groups || data.groups.length === 0) {
+                                    searchDropdown.innerHTML = '<div class="p-3 text-center text-muted small">Aucun résultat pour « ' + q + ' »</div>';
+                                } else {
+                                    var html = '';
+                                    data.groups.forEach(function (g) {
+                                        html += '<div class="search-group-header">' + g.title + '</div>';
+                                        g.items.forEach(function (it) {
+                                            html += '<a href="' + it.url + '" class="search-result-item">' +
+                                                '<div class="fw-bold small text-dark">' + it.label + '</div>' +
+                                                '<div class="text-muted" style="font-size:12px;">' + it.sub + '</div>' +
+                                                '</a>';
+                                        });
+                                    });
+                                    searchDropdown.innerHTML = html;
+                                }
+                                searchDropdown.classList.remove('d-none');
+                            })
+                            .catch(function () {});
+                    }, 220);
+                });
+                document.addEventListener('click', function (e) {
+                    if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                        searchDropdown.classList.add('d-none');
+                    }
+                });
+            }
+
+            // Confirmations SweetAlert2 sur form[data-confirm]
+            document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    if (form.dataset.confirmed === '1') return;
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Confirmation',
+                        text: form.getAttribute('data-confirm'),
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#EF4444',
+                        cancelButtonColor: '#64748B',
+                        confirmButtonText: 'Oui, confirmer',
+                        cancelButtonText: 'Annuler'
+                    }).then(function (res) {
+                        if (res.isConfirmed) {
+                            form.dataset.confirmed = '1';
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

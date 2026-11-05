@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Modifier Dossier {{ folder.reference }}{% else %}Nouveau Dossier d'Expédition{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{% if is_edit %}Modifier le dossier « {{ folder.reference }} »{% else %}Nouveau Dossier d'Expédition{% endif %}</h4>
+        <p class="text-muted small mb-0">La référence unique (MAR-YYYY-XXXX ou AER-YYYY-XXXX) est attribuée automatiquement.</p>
+    </div>
+    <a href="{% url 'shipments:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-sliders text-primary me-2"></i>Informations Générales & Itinéraire</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Mode de transport *</label>
+                            {{ form.transport_mode }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Type d'opération</label>
+                            {{ form.operation_type }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Statut du dossier</label>
+                            {{ form.status }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Intitulé / Désignation de la campagne</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Port / Aéroport de départ *</label>
+                            {{ form.origin }}
+                            {% if form.origin.errors %}<div class="text-danger small">{{ form.origin.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Port / Aéroport d'arrivée *</label>
+                            {{ form.destination }}
+                            {% if form.destination.errors %}<div class="text-danger small">{{ form.destination.errors|striptags }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloc Maritime -->
+            <div class="card mb-4" id="maritimeFieldsBlock">
+                <div class="card-header"><i class="bi bi-tsunami me-2"></i>Informations de Transport Maritime (Conteneur, Navire, B/L)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Compagnie maritime</label>{{ form.shipping_line }}</div>
+                        <div class="col-md-5"><label class="form-label small fw-semibold">Nom du navire</label>{{ form.vessel_name }}</div>
+                        <div class="col-md-3"><label class="form-label small fw-semibold">N° Voyage</label>{{ form.voyage_number }}</div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">N° Conteneur</label>{{ form.container_number }}</div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Type de conteneur</label>{{ form.container_type }}</div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">N° Plomb / Scellé</label>{{ form.seal_number }}</div>
+                        <div class="col-md-6"><label class="form-label small fw-semibold">N° Connaissement Maritime (B/L)</label>{{ form.bl_number }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloc Aérien -->
+            <div class="card mb-4" id="aerienFieldsBlock">
+                <div class="card-header"><i class="bi bi-airplane me-2"></i>Informations de Transport Aérien (Vol, AWB)</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Compagnie aérienne</label>{{ form.airline_name }}</div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">N° de Vol</label>{{ form.flight_number }}</div>
+                        <div class="col-md-4"><label class="form-label small fw-semibold">N° Lettre de Transport Aérien (AWB)</label>{{ form.awb_number }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-calendar-event text-warning me-2"></i>Dates de Départ & d'Arrivée</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6"><label class="form-label small fw-semibold">Départ prévu (ETD)</label>{{ form.etd }}</div>
+                        <div class="col-6"><label class="form-label small fw-semibold">Départ réel (ATD)</label>{{ form.atd }}</div>
+                        <div class="col-6"><label class="form-label small fw-semibold">Arrivée prévue (ETA)</label>{{ form.eta }}</div>
+                        <div class="col-6"><label class="form-label small fw-semibold">Arrivée réelle (ATA)</label>{{ form.ata }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-tag text-success me-2"></i>Tarifs Indicatifs & Notes</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tarif indicatif au m³ (FCFA)</label>
+                        {{ form.default_rate_per_cbm }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Tarif indicatif au kg (FCFA)</label>
+                        {{ form.default_rate_per_kg }}
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Notes opérationnelles</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Mettre à jour le dossier{% else %}Créer le dossier d'expédition{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

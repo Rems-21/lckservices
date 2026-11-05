@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Modifier Client{% else %}Nouveau Client{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{% if is_edit %}Modifier le client « {{ client.name }} » ({{ client.code }}){% else %}Enregistrer un Nouveau Client{% endif %}</h4>
+        <p class="text-muted small mb-0">Coordonnées commerciales, WhatsApp et paramètres de crédit.</p>
+    </div>
+    <a href="{% url 'clients:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="card" style="max-width: 860px;">
+    <div class="card-body p-4">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Type de client</label>
+                    {{ form.client_type }}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label small fw-semibold">Nom complet / Raison sociale *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">NIU / RCCM / Pièce d'identité</label>
+                    {{ form.tax_id }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Téléphone principal *</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Numéro WhatsApp</label>
+                    {{ form.whatsapp }}
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold">Adresse e-mail</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Ville</label>
+                    {{ form.city }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Pays</label>
+                    {{ form.country }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">Adresse géographique</label>
+                    {{ form.address }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Plafond de crédit indicatif (FCFA)</label>
+                    {{ form.credit_limit_fcfa }}
+                </div>
+                <div class="col-md-6 d-flex align-items-end gap-4 pb-2">
+                    <div class="form-check">
+                        {{ form.credit_allowed }}
+                        <label class="form-check-label fw-medium" for="{{ form.credit_allowed.id_for_label }}">Éligible aux livraisons à crédit</label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label fw-medium" for="{{ form.is_active.id_for_label }}">Client actif</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">Notes & Instructions</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check2 me-1"></i>Enregistrer</button>
+                <a href="{% url 'clients:list' %}" class="btn btn-light border">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

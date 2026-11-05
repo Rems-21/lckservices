@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Dépenses &amp; Répartition des Frais — LCK Services SARL{% endblock %}
+{% block page_title %}Dépenses &amp; Répartition des Frais{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'finance:expense_create' %}" class="btn btn-success"><i class="fa fa-plus me-1"></i> Nouvelle Dépense</a>
+        <a href="{% url 'finance:allocation_history' %}" class="btn btn-primary"><i class="fa fa-sliders me-1"></i> Historique des Répartitions</a>
+        <a href="{% url 'finance:categories' %}" class="btn btn-default"><i class="fa fa-tags me-1"></i> Catégories de Frais</a>
+    </div>
+    <div>
+        <span class="label label-danger" style="font-size:13px; padding:7px 12px;">Total Dépenses : {{ total_fcfa|fcfa }}</span>
+    </div>
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-calculator me-1"></i> Liste des Dépenses Opérationnelles par Dossier
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Référence</th>
+                        <th>Date</th>
+                        <th>Dossier</th>
+                        <th>Catégorie &amp; Libellé</th>
+                        <th>Prestataire</th>
+                        <th class="text-end">Montant Devise</th>
+                        <th class="text-end">Montant FCFA</th>
+                        <th>Pièce</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in page_obj %}
+                    <tr>
+                        <td><strong>{{ exp.reference }}</strong></td>
+                        <td>{{ exp.expense_date|date:"d/m/Y" }}</td>
+                        <td><a href="{% url 'shipments:detail' exp.folder_id %}" class="fw-bold">{{ exp.folder.reference }}</a></td>
+                        <td>
+                            <strong>{{ exp.label }}</strong>
+                            <div class="text-muted small">{{ exp.category.name }}</div>
+                        </td>
+                        <td>{{ exp.vendor_name|default:"-" }}</td>
+                        <td class="text-end">{{ exp.amount_original|num:2 }} {{ exp.currency.code }}</td>
+                        <td class="text-end fw-bold text-danger">{{ exp.amount_fcfa|fcfa }}</td>
+                        <td>
+                            {% if exp.receipt_file %}
+                            <a href="{{ exp.receipt_file.url }}" target="_blank" class="btn btn-xs btn-default"><i class="fa fa-paperclip"></i> Voir</a>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'finance:allocate_folder' exp.folder_id %}" class="btn btn-sm btn-warning" title="Répartir le dossier"><i class="fa fa-sliders"></i></a>
+                            <a href="{% url 'finance:expense_edit' exp.pk %}" class="btn btn-sm btn-info" title="Modifier"><i class="fa fa-edit"></i></a>
+                            <form method="post" action="{% url 'finance:expense_delete' exp.pk %}" class="d-inline" data-confirm="Supprimer la dépense {{ exp.reference }} ?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer"><i class="fa fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

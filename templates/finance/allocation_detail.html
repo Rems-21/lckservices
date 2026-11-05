@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Répartition {{ run.reference }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark fs-6">{{ run.reference }}</span>
+            <h4 class="fw-bold mb-0">Détail de la Répartition — Dossier {{ run.folder.reference }}</h4>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            Méthode : <strong>{{ run.get_allocation_method_display }}</strong> • Marge : {{ run.get_margin_type_display }} ({{ run.margin_value }}) • Calculée le {{ run.created_at|date:"d/m/Y à H:i" }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'shipments:detail' run.folder_id %}" class="btn btn-primary"><i class="bi bi-folder2-open me-1"></i>Aller au dossier & Facturer</a>
+        <a href="{% url 'finance:allocate_folder' run.folder_id %}" class="btn btn-outline-warning"><i class="bi bi-arrow-repeat me-1"></i>Nouvelle répartition</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Code Colis</th>
+                    <th>Client</th>
+                    <th class="text-end">Part (%)</th>
+                    <th class="text-end">Coût Auto</th>
+                    <th class="text-end">Ajustement</th>
+                    <th class="text-end">Coût Retenu</th>
+                    <th class="text-end">Prix Commercial</th>
+                    <th class="text-end">Rentabilité</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for it in items %}
+                <tr>
+                    <td><a href="{% url 'cargo:detail' it.parcel_id %}" class="fw-bold text-decoration-none">{{ it.parcel.parcel_code }}</a></td>
+                    <td>{{ it.parcel.client.name }}</td>
+                    <td class="text-end">{{ it.share_percent|num:2 }} %</td>
+                    <td class="text-end text-muted">{{ it.theoretical_cost_fcfa|fcfa }}</td>
+                    <td class="text-end">{{ it.manual_adjustment_fcfa|fcfa }}</td>
+                    <td class="text-end fw-semibold">{{ it.final_cost_fcfa|fcfa }}</td>
+                    <td class="text-end fw-bold text-primary">{{ it.final_price_fcfa|fcfa }}</td>
+                    <td class="text-end fw-bold {% if it.profit_fcfa >= 0 %}text-success{% else %}text-danger{% endif %}">{{ it.profit_fcfa|fcfa }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Modifier Utilisateur{% else %}Nouveau Compte Utilisateur{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{% if is_edit %}Modifier le compte « {{ target_user.username }} »{% else %}Créer un Compte Utilisateur{% endif %}</h4>
+        <p class="text-muted small mb-0">Gestion des accès à la plateforme LCK Services SARL</p>
+    </div>
+    <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="card" style="max-width: 780px;">
+    <div class="card-body p-4">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Identifiant de connexion *</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Poste / Fonction</label>
+                    {{ form.job_title }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Prénom</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Nom</label>
+                    {{ form.last_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">E-mail</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Téléphone</label>
+                    {{ form.phone }}
+                </div>
+
+                {% if is_edit %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">{{ form.new_password.label }}</label>
+                    {{ form.new_password }}
+                    {% if form.new_password.errors %}<div class="text-danger small">{{ form.new_password.errors|striptags }}</div>{% endif %}
+                </div>
+                {% else %}
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">{{ form.password.label }} *</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">{{ form.password_confirm.label }} *</label>
+                    {{ form.password_confirm }}
+                    {% if form.password_confirm.errors %}<div class="text-danger small">{{ form.password_confirm.errors|striptags }}</div>{% endif %}
+                </div>
+                {% endif %}
+
+                <div class="col-md-6">
+                    <div class="form-check mt-2">
+                        {{ form.is_active }}
+                        <label class="form-check-label fw-medium" for="{{ form.is_active.id_for_label }}">Compte actif (autorisé à se connecter)</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-2">
+                        {{ form.is_access_admin }}
+                        <label class="form-check-label fw-medium" for="{{ form.is_access_admin.id_for_label }}">Droit de gestion des comptes utilisateurs</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check2 me-1"></i>Enregistrer le compte</button>
+                <a href="{% url 'accounts:user_list' %}" class="btn btn-light border">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

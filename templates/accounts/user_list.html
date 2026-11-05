@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Utilisateurs — LCK Services SARL{% endblock %}
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+
+{% block content %}
+{% if request.user.can_manage_accounts %}
+<div class="margin-bottom-20">
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fa fa-plus me-1"></i> Ajouter un Utilisateur
+    </button>
+</div>
+{% endif %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-users me-1"></i> Liste des Comptes Utilisateurs (Rôle fonctionnel unique : Utilisateur)
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Identifiant</th>
+                        <th>Nom complet &amp; Fonction</th>
+                        <th>Email / Téléphone</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>
+                            {{ u.display_name }}
+                            <div class="text-muted small">{{ u.job_title|default:"Agent de transit" }}</div>
+                        </td>
+                        <td>
+                            {{ u.email|default:"-" }}
+                            {% if u.phone %}<div class="text-muted small">{{ u.phone }}</div>{% endif %}
+                        </td>
+                        <td>
+                            <span class="label label-primary">{{ u.role_label }}</span>
+                            {% if u.can_manage_accounts %}
+                                <span class="label label-navy ms-1">Admin Accès</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                                <span class="label label-success">Actif</span>
+                            {% else %}
+                                <span class="label label-danger">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if request.user.can_manage_accounts %}
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.pk }}" title="Modifier">
+                                <i class="fa fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pwdUserModal{{ u.pk }}" title="Réinitialiser mot de passe">
+                                <i class="fa fa-key"></i>
+                            </button>
+                            {% if u.pk != request.user.pk %}
+                            <form method="post" action="{% url 'accounts:user_toggle' u.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                {% if u.is_active %}
+                                <button type="submit" class="btn btn-sm btn-warning" title="Désactiver"><i class="fa fa-ban"></i></button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm btn-success" title="Activer"><i class="fa fa-check"></i></button>
+                                {% endif %}
+                            </form>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if request.user.can_manage_accounts %}
+<!-- Modal Ajout Utilisateur -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:user_modal_save' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-user-plus me-2"></i>Créer un Compte Utilisateur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Identifiant de connexion *</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mot de passe initial *</label>
+                            <input type="password" name="password" class="form-control" minlength="6" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input type="text" name="first_name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input type="text" name="last_name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Fonction</label>
+                            <input type="text" name="job_title" class="form-control" value="Chargé(e) de Transit &amp; Groupage">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for u in users %}
+<!-- Modal Modification Utilisateur -->
+<div class="modal fade" id="editUserModal{{ u.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:user_modal_save' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ u.pk }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-edit me-2"></i>Modifier — {{ u.username }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Identifiant *</label>
+                            <input type="text" name="username" class="form-control" value="{{ u.username }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fonction</label>
+                            <input type="text" name="job_title" class="form-control" value="{{ u.job_title }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input type="text" name="first_name" class="form-control" value="{{ u.first_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input type="text" name="last_name" class="form-control" value="{{ u.last_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ u.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" name="phone" class="form-control" value="{{ u.phone }}">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" value="1" id="act{{ u.pk }}" {% if u.is_active %}checked{% endif %}>
+                                <label class="form-check-label small" for="act{{ u.pk }}">Compte actif</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mot de passe -->
+<div class="modal fade" id="pwdUserModal{{ u.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:user_reset_password' u.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-key me-2"></i>Nouveau mot de passe — {{ u.username }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Nouveau mot de passe (min. 6 caractères) *</label>
+                    <input type="password" name="new_password" class="form-control" minlength="6" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning">Réinitialiser</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

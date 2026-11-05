@@ -1,0 +1,85 @@
+{% load lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>{{ delivery.delivery_number }}</title>
+    <style>
+        @page { size: A4; margin: 1.4cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #1e293b; }
+        table { width: 100%; border-collapse: collapse; }
+        .header { border-bottom: 3px solid #0f2942; padding-bottom: 10px; margin-bottom: 16px; }
+        .grid th { background-color: #0f2942; color: #fff; padding: 7px; font-size: 9pt; text-align: left; }
+        .grid td { border: 1px solid #cbd5e1; padding: 7px; font-size: 9.5pt; }
+    </style>
+</head>
+<body>
+    <table class="header">
+        <tr>
+            <td style="width: 65%;">
+                <div style="font-size: 15pt; font-weight: bold; color: #0f2942;">{{ company.name }}</div>
+                <div style="font-size: 9pt;">{{ company.address }} • Tél : {{ company.phone }}</div>
+            </td>
+            <td style="width: 35%; text-align: right;">
+                <div style="font-size: 13pt; font-weight: bold; color: #059669;">BON DE LIVRAISON</div>
+                <div><strong>N° {{ delivery.delivery_number }}</strong></div>
+                <div style="font-size: 9pt;">Remis le {{ delivery.delivered_at|date:"d/m/Y à H:i" }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <table style="background-color: #f8fafc; border: 1px solid #cbd5e1; margin-bottom: 16px;">
+        <tr>
+            <td style="padding: 10px; width: 50%;">
+                <strong>Client :</strong> {{ delivery.client.name }} ({{ delivery.client.code }})<br>
+                <strong>Dossier :</strong> {{ delivery.folder.reference }}<br>
+                <strong>Mode de remise :</strong> {{ delivery.get_delivery_mode_display }}
+            </td>
+            <td style="padding: 10px; width: 50%;">
+                <strong>Réceptionnaire :</strong> {{ delivery.recipient_name }}<br>
+                <strong>Pièce d'identité :</strong> {{ delivery.recipient_id_number|default:"N/A" }}<br>
+                <strong>Téléphone :</strong> {{ delivery.recipient_phone|default:delivery.client.phone }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="grid" style="margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th>Code Colis</th>
+                <th>Désignation de la Marchandise</th>
+                <th style="text-align: center;">Quantité</th>
+                <th style="text-align: right;">Volume (m³)</th>
+                <th style="text-align: right;">Poids (kg)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in parcels %}
+            <tr>
+                <td><strong>{{ p.parcel_code }}</strong></td>
+                <td>{{ p.description }} ({{ p.get_packaging_type_display }})</td>
+                <td style="text-align: center;">{{ p.quantity }}</td>
+                <td style="text-align: right;">{{ p.volume_cbm|num:4 }}</td>
+                <td style="text-align: right;">{{ p.weight_kg|num:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if delivery.notes %}
+    <div style="margin-bottom: 16px;"><strong>Observations / Réserves :</strong> {{ delivery.notes }}</div>
+    {% endif %}
+
+    <table style="margin-top: 28px;">
+        <tr>
+            <td style="width: 30%;"><img src="{{ qr_code }}" width="85" height="85" alt="QR"></td>
+            <td style="width: 35%; text-align: center; vertical-align: top;">
+                <strong>Visa Magasinier LCK</strong><br>{{ delivery.delivered_by.display_name|default:"" }}<br><br><br>______________________
+            </td>
+            <td style="width: 35%; text-align: center; vertical-align: top;">
+                <strong>Signature du Réceptionnaire</strong><br><span style="font-size: 8pt;">(Précédée de « Colis reçus conformes »)</span><br><br><br>______________________
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

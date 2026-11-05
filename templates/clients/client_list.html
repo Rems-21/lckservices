@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Gestion des Clients — LCK Services SARL{% endblock %}
+{% block page_title %}Gestion des Clients{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addClientModal">
+            <i class="fa fa-plus me-1"></i> Ajouter un Client
+        </button>
+    </div>
+
+    <div class="btn-group" role="group">
+        <a href="{% url 'clients:list' %}" class="btn btn-sm {% if not balance_filter %}btn-navy{% else %}btn-default{% endif %}">Tous ({{ total_clients }})</a>
+        <a href="{% url 'clients:list' %}?balance=owes" class="btn btn-sm {% if balance_filter == 'owes' %}btn-danger{% else %}btn-default{% endif %}">Avec solde impayé</a>
+        <a href="{% url 'clients:list' %}?balance=settled" class="btn btn-sm {% if balance_filter == 'settled' %}btn-success{% else %}btn-default{% endif %}">À jour</a>
+    </div>
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-users me-1"></i> Répertoire des Clients
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Nom / Raison Sociale</th>
+                        <th>Type</th>
+                        <th>Téléphone / Ville</th>
+                        <th class="text-center">Colis</th>
+                        <th class="text-end">Total Facturé</th>
+                        <th class="text-end">Solde Restant</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in page_obj %}
+                    <tr>
+                        <td><strong>{{ c.code }}</strong></td>
+                        <td>
+                            <a href="{% url 'clients:detail' c.pk %}" class="fw-bold">{{ c.name }}</a>
+                            {% if c.email %}<div class="text-muted small">{{ c.email }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {% if c.client_type == 'ENTREPRISE' %}
+                                <span class="label label-navy">Entreprise</span>
+                            {% else %}
+                                <span class="label label-info">Particulier</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ c.phone }}</div>
+                            <small class="text-muted">{{ c.city }} ({{ c.country }})</small>
+                        </td>
+                        <td class="text-center">{{ c.parcels_count }}</td>
+                        <td class="text-end">{{ c.invoiced_sum|fcfa }}</td>
+                        <td class="text-end">
+                            {% if c.balance_sum > 0 %}
+                                <span class="label label-danger">{{ c.balance_sum|fcfa }}</span>
+                            {% else %}
+                                <span class="label label-success">0 FCFA</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'clients:detail' c.pk %}" class="btn btn-sm btn-primary" title="Fiche 360°">
+                                <i class="fa fa-eye"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editClientModal{{ c.pk }}" title="Modifier">
+                                <i class="fa fa-edit"></i>
+                            </button>
+                            {% if c.parcels_count == 0 and c.invoiced_sum == 0 %}
+                            <form method="post" action="{% url 'clients:delete' c.pk %}" class="d-inline" data-confirm="Supprimer définitivement le client {{ c.name }} ?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer"><i class="fa fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout Client -->
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'clients:quick_create' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-user-plus me-2"></i>Enregistrer un Client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Type de client *</label>
+                            <select name="client_type" class="form-select">
+                                {% for ccode, clbl in client_types %}
+                                <option value="{{ ccode }}">{{ clbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Nom complet ou Raison sociale *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Téléphone principal *</label>
+                            <input type="text" name="phone" class="form-control" placeholder="+237 6..." required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">WhatsApp</label>
+                            <input type="text" name="whatsapp" class="form-control" placeholder="Identique si vide">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">NIU / Identifiant fiscal</label>
+                            <input type="text" name="tax_id" class="form-control">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ville</label>
+                            <input type="text" name="city" class="form-control" value="Douala">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pays</label>
+                            <input type="text" name="country" class="form-control" value="Cameroun">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Adresse</label>
+                            <input type="text" name="address" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="credit_allowed" value="1" id="addCreditAllowed">
+                                <label class="form-check-label small" for="addCreditAllowed">Autoriser les livraisons à crédit pour ce client</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Plafond crédit (FCFA)</label>
+                            <input type="number" step="1" name="credit_limit_fcfa" class="form-control" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales Modification Client -->
+{% for c in page_obj %}
+<div class="modal fade" id="editClientModal{{ c.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'clients:quick_update' c.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="from_list" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-edit me-2"></i>Modifier Client — {{ c.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Type</label>
+                            <select name="client_type" class="form-select">
+                                {% for ccode, clbl in client_types %}
+                                <option value="{{ ccode }}" {% if ccode == c.client_type %}selected{% endif %}>{{ clbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Nom / Raison sociale *</label>
+                            <input type="text" name="name" class="form-control" value="{{ c.name }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Téléphone *</label>
+                            <input type="text" name="phone" class="form-control" value="{{ c.phone }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">WhatsApp</label>
+                            <input type="text" name="whatsapp" class="form-control" value="{{ c.whatsapp }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ville</label>
+                            <input type="text" name="city" class="form-control" value="{{ c.city }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ c.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Adresse</label>
+                            <input type="text" name="address" class="form-control" value="{{ c.address }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

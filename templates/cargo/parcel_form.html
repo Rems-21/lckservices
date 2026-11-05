@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Modifier Colis {{ parcel.parcel_code }}{% else %}Enregistrer un Colis{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">{% if is_edit %}Modifier le colis « {{ parcel.parcel_code }} »{% else %}Enregistrement d'une Marchandise / Colis{% endif %}</h4>
+        <p class="text-muted small mb-0">Le code unique colis est généré automatiquement et le volume (m³) est calculé en temps réel.</p>
+    </div>
+    <a href="{% url 'cargo:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+{{ currencies_rates|json_script:"currenciesRatesData" }}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-link-45deg text-primary me-2"></i>Affectation & Identification de la Marchandise</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Dossier d'expédition *</label>
+                            {{ form.folder }}
+                            {% if form.folder.errors %}<div class="text-danger small">{{ form.folder.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Client destinataire *</label>
+                            {{ form.client }}
+                            {% if form.client.errors %}<div class="text-danger small">{{ form.client.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-semibold">Désignation précise de la marchandise *</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Classification / Catégorie</label>
+                            {{ form.category }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Type d'emballage</label>
+                            {{ form.packaging_type }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Fournisseur d'origine</label>
+                            {{ form.supplier_name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">N° Tracking fournisseur</label>
+                            {{ form.supplier_tracking }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calcul automatique du volume m³ -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-aspect-ratio me-2"></i>Quantité, Poids, Dimensions & Calcul Automatique du Volume (m³)</span>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-primary" id="liveVolumePreview">0.0000 m³</span>
+                        <span class="badge bg-dark" id="liveAirWeightPreview">0.00 kg vol.</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Quantité (colis/unités)</label>
+                            {{ form.quantity }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Poids total brut (kg)</label>
+                            {{ form.weight_kg }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Longueur (cm)</label>
+                            {{ form.length_cm }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Largeur (cm)</label>
+                            {{ form.width_cm }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Hauteur (cm)</label>
+                            {{ form.height_cm }}
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check">
+                                {{ form.manual_volume }}
+                                <label class="form-check-label small" for="{{ form.manual_volume.id_for_label }}">Saisir manuellement le volume global m³</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Volume total retenu (m³)</label>
+                            {{ form.volume_cbm }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-currency-exchange text-success me-2"></i>Valeur Déclarée</span>
+                    <span class="badge bg-success-subtle text-success" id="liveFcfaConverted">0 FCFA</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Valeur déclarée</label>
+                        {{ form.declared_value }}
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Devise</label>
+                            {{ form.declared_currency }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Taux -> FCFA</label>
+                            {{ form.exchange_rate }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-paperclip text-warning me-2"></i>Statut, Entrepôt & Document Joint</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Statut logistique</label>
+                        {{ form.status }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Emplacement / Travée entrepôt</label>
+                        {{ form.storage_location }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Titre du document joint (optionnel)</label>
+                        {{ form.attachment_title }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Fichier (Packing list, Facture...)</label>
+                        {{ form.attachment_file }}
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Remarques</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Enregistrer les modifications{% else %}Enregistrer le colis{% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

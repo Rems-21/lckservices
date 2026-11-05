@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil — LCK Services SARL{% endblock %}
+{% block page_title %}Mon Profil{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Colonne Gauche : Fiche Utilisateur (Style MyTV profile.html) -->
+    <div class="col-md-4">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <i class="fa fa-user me-1"></i> Fiche Utilisateur
+            </div>
+            <div class="panel-body text-center">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle text-white fw-bold"
+                     style="width: 90px; height: 90px; font-size: 30px; background: var(--primary-dark);">
+                    {{ request.user.initials }}
+                </div>
+                <h5 class="fw-bold mb-1">{{ request.user.display_name }}</h5>
+                <p class="text-muted small mb-2">
+                    <span class="label label-primary">{{ request.user.role_label }}</span>
+                    {% if request.user.can_manage_accounts %}<span class="label label-navy ms-1">Admin Accès</span>{% endif %}
+                </p>
+                <hr>
+                <div class="text-start small">
+                    <p class="mb-2"><strong>Identifiant :</strong> {{ request.user.username }}</p>
+                    <p class="mb-2"><strong>Fonction :</strong> {{ request.user.job_title|default:"-" }}</p>
+                    <p class="mb-2"><strong>Email :</strong> {{ request.user.email|default:"Non renseigné" }}</p>
+                    <p class="mb-2"><strong>Téléphone :</strong> {{ request.user.phone|default:"Non renseigné" }}</p>
+                    <p class="mb-0"><strong>Dernière connexion :</strong> {{ request.user.last_login|date:"d/m/Y H:i"|default:"-" }}</p>
+                </div>
+                <hr>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#infoModal">
+                        <i class="fa fa-edit me-1"></i> Modifier mes informations
+                    </button>
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                        <i class="fa fa-key me-1"></i> Changer mon mot de passe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne Droite : Historique de mes actions -->
+    <div class="col-md-8">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-history me-1"></i> Historique Récent de mes Opérations
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered data-table">
+                        <thead>
+                            <tr>
+                                <th>Date &amp; Heure</th>
+                                <th>Action</th>
+                                <th>Module</th>
+                                <th>Objet / Détails</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td class="text-nowrap">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+                                <td><span class="label label-info">{{ log.get_action_display }}</span></td>
+                                <td>{{ log.module }}</td>
+                                <td>
+                                    <strong>{{ log.object_repr }}</strong>
+                                    {% if log.details %}<div class="text-muted small">{{ log.details }}</div>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier mes informations -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="profile">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-user me-2"></i>Modifier mes informations</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% for field in profile_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Changer de mot de passe -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="password">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-key me-2"></i>Changer mon mot de passe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% for field in password_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning"><i class="fa fa-check me-1"></i> Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

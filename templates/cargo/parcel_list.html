@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Marchandises &amp; Colis — LCK Services SARL{% endblock %}
+{% block page_title %}Marchandises &amp; Colis{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="d-flex gap-2">
+        <a href="{% url 'cargo:create' %}" class="btn btn-success"><i class="fa fa-plus me-1"></i> Enregistrer un Colis</a>
+        <a href="{% url 'cargo:categories' %}" class="btn btn-default"><i class="fa fa-tags me-1"></i> Catégories</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 col-6">
+        <div class="stat-tile tile-navy">
+            <div class="tile-icon"><i class="fa fa-cubes"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ agg.total_parcels|default:0 }}</div>
+                <div class="tile-label">Lots / Colis</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-tile tile-info">
+            <div class="tile-icon"><i class="fa fa-archive"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ agg.total_units|default:0 }}</div>
+                <div class="tile-label">Unités / Contenants</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-tile tile-primary">
+            <div class="tile-icon"><i class="fa fa-arrows-alt"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ agg.total_volume|num:3 }} m³</div>
+                <div class="tile-label">Volume Total</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-tile tile-success">
+            <div class="tile-icon"><i class="fa fa-balance-scale"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ agg.total_weight|num:1 }} kg</div>
+                <div class="tile-label">Poids Total Brut</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-cubes me-1"></i> Liste des Marchandises &amp; Colis
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Code Unique</th>
+                        <th>Dossier</th>
+                        <th>Client</th>
+                        <th>Marchandise &amp; Catégorie</th>
+                        <th class="text-center">Qté</th>
+                        <th class="text-end">Volume (m³)</th>
+                        <th class="text-end">Poids (kg)</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in page_obj %}
+                    <tr>
+                        <td><a href="{% url 'cargo:detail' p.pk %}" class="fw-bold">{{ p.parcel_code }}</a></td>
+                        <td><a href="{% url 'shipments:detail' p.folder_id %}">{{ p.folder.reference }}</a></td>
+                        <td><a href="{% url 'clients:detail' p.client_id %}">{{ p.client.name }}</a></td>
+                        <td>
+                            <strong>{{ p.description }}</strong>
+                            <div class="text-muted small">{{ p.category.name|default:"Non classé" }} • {{ p.get_packaging_type_display }}</div>
+                        </td>
+                        <td class="text-center">{{ p.quantity }}</td>
+                        <td class="text-end fw-bold text-primary">{{ p.volume_cbm|num:4 }}</td>
+                        <td class="text-end">{{ p.weight_kg|num:2 }}</td>
+                        <td>
+                            {% if p.status == 'LIVRE' %}
+                                <span class="label label-success">{{ p.get_status_display }}</span>
+                            {% elif p.status == 'LITIGE' %}
+                                <span class="label label-danger">{{ p.get_status_display }}</span>
+                            {% else %}
+                                <span class="label label-primary">{{ p.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'cargo:detail' p.pk %}" class="btn btn-sm btn-primary" title="Détails"><i class="fa fa-eye"></i></a>
+                            <a href="{% url 'documents:parcel_label_pdf' p.pk %}" target="_blank" class="btn btn-sm btn-default" title="Étiquette PDF"><i class="fa fa-qrcode"></i></a>
+                            <a href="{% url 'cargo:edit' p.pk %}" class="btn btn-sm btn-info" title="Modifier"><i class="fa fa-edit"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Répartition des Coûts — {{ folder.reference }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Répartition des Coûts & Calcul de Rentabilité — {{ folder.reference }}</h4>
+        <p class="text-muted small mb-0">
+            Clé selon le volume (m³), le poids (kg), la valeur déclarée ou forfaitaire, avec ajustement manuel et marges commerciales.
+        </p>
+    </div>
+    <a href="{% url 'shipments:detail' folder.pk %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour au dossier</a>
+</div>
+
+<!-- Synthèse financière de la simulation -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Dépenses Dossier</div>
+            <div class="kpi-value text-danger">{{ preview.total_expenses_fcfa|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Coûts Imputés aux Colis</div>
+            <div class="kpi-value">{{ preview.total_allocated_cost_fcfa|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-label">CA Commercial Attendu</div>
+            <div class="kpi-value text-primary">{{ preview.total_commercial_fcfa|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card border-success">
+            <div class="kpi-label">Rentabilité Prévisionnelle</div>
+            <div class="kpi-value {% if preview.expected_profit_fcfa >= 0 %}text-success{% else %}text-danger{% endif %}">{{ preview.expected_profit_fcfa|fcfa }}</div>
+        </div>
+    </div>
+</div>
+
+{% if preview.fallback_equal_used %}
+<div class="alert alert-warning py-2 small">
+    <i class="bi bi-info-circle me-1"></i> La clé choisie ayant un total nul sur les colis, la répartition automatique a été ventilée à parts égales (1/N). Vous pouvez ajuster manuellement chaque ligne ci-dessous.
+</div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card mb-4">
+        <div class="card-header bg-light"><i class="bi bi-sliders text-primary me-2"></i>Paramètres de Répartition & Marge Commerciale</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Clé de répartition des coûts</label>
+                    <select name="allocation_method" class="form-select">
+                        {% for code, label in method_choices %}
+                            <option value="{{ code }}" {% if allocation_method == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Mode de marge commerciale</label>
+                    <select name="margin_type" class="form-select">
+                        {% for code, label in margin_choices %}
+                            <option value="{{ code }}" {% if margin_type == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Valeur (% ou FCFA)</label>
+                    <input type="number" step="0.01" name="margin_value" value="{{ margin_value|stringformat:'.2f' }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" name="submit_action" value="preview" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i> Simuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-table text-primary me-2"></i>Ventilation par Colis & Ajustement Manuel</span>
+            <button type="submit" name="submit_action" value="save" class="btn btn-success fw-semibold">
+                <i class="bi bi-check2-circle me-1"></i> Valider & Appliquer cette Répartition
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Colis & Client</th>
+                        <th class="text-end">Base</th>
+                        <th class="text-end">Part (%)</th>
+                        <th class="text-end">Coût Auto (FCFA)</th>
+                        <th class="text-end" style="width: 150px;">Ajustement Coût</th>
+                        <th class="text-end">Coût Retenu</th>
+                        <th class="text-end" style="width: 170px;">Prix Commercial (FCFA)</th>
+                        <th class="text-end">Marge / Colis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in preview.rows %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ row.parcel.parcel_code }}</div>
+                            <small class="text-muted">{{ row.parcel.client.name }} — {{ row.parcel.volume_cbm|num:3 }} m³ / {{ row.parcel.weight_kg|num:1 }} kg</small>
+                        </td>
+                        <td class="text-end small">{{ row.basis_quantity|num:3 }}</td>
+                        <td class="text-end small">{{ row.share_percent|num:2 }} %</td>
+                        <td class="text-end text-muted">{{ row.theoretical_cost_fcfa|fcfa }}</td>
+                        <td>
+                            <input type="number" step="1" name="adj_{{ row.parcel.id }}" value="{{ row.manual_adjustment_fcfa|stringformat:'.0f' }}" class="form-control form-control-sm text-end">
+                        </td>
+                        <td class="text-end fw-semibold">{{ row.final_cost_fcfa|fcfa }}</td>
+                        <td>
+                            <input type="number" step="1" name="price_{{ row.parcel.id }}" value="{{ row.final_price_fcfa|stringformat:'.0f' }}" class="form-control form-control-sm text-end fw-semibold text-primary">
+                        </td>
+                        <td class="text-end fw-bold {% if row.profit_fcfa >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ row.profit_fcfa|fcfa }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">Aucun colis rattaché à ce dossier.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white">
+            <div class="row align-items-center g-2">
+                <div class="col-md-8">
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="Observation / justification financière à conserver dans l'historique...">
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="submit" name="submit_action" value="save" class="btn btn-success w-100 fw-semibold">
+                        <i class="bi bi-save me-1"></i> Enregistrer dans l'historique & Mettre à jour les colis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if history %}
+<div class="card">
+    <div class="card-header"><i class="bi bi-clock-history text-secondary me-2"></i>Historique des Répartitions de ce Dossier</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr><th>Référence</th><th>Date</th><th>Clé</th><th class="text-end">Dépenses</th><th class="text-end">Total Commercial</th><th class="text-end">Rentabilité</th><th>Statut</th></tr>
+            </thead>
+            <tbody>
+                {% for h in history %}
+                <tr>
+                    <td><a href="{% url 'finance:allocation_detail' h.pk %}" class="fw-bold">{{ h.reference }}</a></td>
+                    <td class="small">{{ h.created_at|date:"d/m/Y H:i" }}</td>
+                    <td class="small">{{ h.get_allocation_method_display }}</td>
+                    <td class="text-end">{{ h.total_expenses_fcfa|fcfa }}</td>
+                    <td class="text-end">{{ h.total_commercial_fcfa|fcfa }}</td>
+                    <td class="text-end fw-semibold text-success">{{ h.expected_profit_fcfa|fcfa }}</td>
+                    <td>{% if h.is_active_run %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Archivée</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

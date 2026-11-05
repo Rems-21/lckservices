@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications &amp; Alertes — LCK Services SARL{% endblock %}
+{% block page_title %}Notifications &amp; Alertes Opérationnelles{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="btn-group">
+        <a href="{% url 'reports:notifications' %}" class="btn btn-sm {% if filter_mode != 'unread' %}btn-navy{% else %}btn-default{% endif %}">
+            Toutes ({{ total_count }})
+        </a>
+        <a href="{% url 'reports:notifications' %}?filter=unread" class="btn btn-sm {% if filter_mode == 'unread' %}btn-primary{% else %}btn-default{% endif %}">
+            Non lues ({{ unread_count }})
+        </a>
+    </div>
+
+    {% if unread_count > 0 %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="mark_all_read">
+        <button type="submit" class="btn btn-sm btn-success"><i class="fa fa-check me-1"></i> Tout marquer comme lu</button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-bell me-1"></i> Alertes ETA, Créances Clients, Crédits &amp; Incidents
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Alerte &amp; Détails</th>
+                        <th>Date / Échéance</th>
+                        <th>État</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in notifications %}
+                    <tr>
+                        <td><span class="label label-{{ n.color|default:'primary' }}">{{ n.category }}</span></td>
+                        <td>
+                            <strong>{{ n.title }}</strong>
+                            <div class="text-muted small">{{ n.message }}</div>
+                        </td>
+                        <td class="text-nowrap">{{ n.date_label }}</td>
+                        <td>
+                            {% if n.is_read %}
+                                <span class="label label-default">Lu</span>
+                            {% else %}
+                                <span class="label label-warning">Nouveau</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            <a href="{{ n.url }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i> Consulter</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

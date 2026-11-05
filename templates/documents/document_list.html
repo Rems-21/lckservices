@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Gestion Documentaire (GED){% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">Gestion Électronique des Documents (B/L, AWB, Contrats, Justificatifs)</h4>
+    <p class="text-muted small mb-0">Archivage centralisé et accès rapide aux pièces de transport maritime, aérien et douanier.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-cloud-upload text-primary me-2"></i>Importer un Document</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|striptags }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100 mt-2"><i class="bi bi-upload me-1"></i>Archiver le document</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <form method="get" class="row g-2 align-items-center">
+                    <div class="col-md-5"><input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Titre, N° B/L, AWB, dossier, client..."></div>
+                    <div class="col-md-5">
+                        <select name="doc_type" class="form-select form-select-sm">
+                            <option value="">Tous types de documents</option>
+                            {% for code, label in doc_types %}<option value="{{ code }}" {% if dtype == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-sm btn-primary w-100">Filtrer</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Réf.</th>
+                            <th>Document & N° Officiel</th>
+                            <th>Type</th>
+                            <th>Rattachement</th>
+                            <th>Date</th>
+                            <th class="text-end">Fichier</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in page_obj %}
+                        <tr>
+                            <td class="fw-bold small">{{ d.reference }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ d.title }}</div>
+                                {% if d.external_number %}<small class="text-muted">N° {{ d.external_number }}</small>{% endif %}
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ d.get_doc_type_display }}</span></td>
+                            <td class="small">
+                                {% if d.folder %}<div><a href="{% url 'shipments:detail' d.folder_id %}">{{ d.folder.reference }}</a></div>{% endif %}
+                                {% if d.client %}<div class="text-muted">{{ d.client.name }}</div>{% endif %}
+                            </td>
+                            <td class="small text-muted">{{ d.created_at|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <a href="{{ d.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                                    <form method="post" action="{% url 'documents:delete' d.pk %}" data-confirm="Supprimer ce document archivé ?">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucun document archivé pour ces critères.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

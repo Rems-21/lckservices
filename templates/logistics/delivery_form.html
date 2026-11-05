@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle Livraison Client{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Émettre un Bon de Livraison</h4>
+        <p class="text-muted small mb-0">Vérification automatique du règlement de la facture ou d'une autorisation de livraison à crédit active.</p>
+    </div>
+    <a href="{% url 'logistics:delivery_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="card" style="max-width: 900px;">
+    <div class="card-body p-4">
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <div class="fw-bold mb-1"><i class="bi bi-shield-exclamation me-1"></i>Contrôle avant livraison :</div>
+                {{ form.non_field_errors }}
+                {% for field in form %}
+                    {% if field.errors %}<div class="small">• <strong>{{ field.label }}</strong> : {{ field.errors|striptags }}</div>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label small fw-semibold">Dossier d'expédition *</label>{{ form.folder }}</div>
+                <div class="col-md-6"><label class="form-label small fw-semibold">Client *</label>{{ form.client }}</div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">Colis à remettre au client (maintenir Ctrl pour sélection multiple) *</label>
+                    {{ form.parcels }}
+                </div>
+                <div class="col-md-6"><label class="form-label small fw-semibold">Facture Définitive associée</label>{{ form.invoice }}</div>
+                <div class="col-md-6"><label class="form-label small fw-semibold">Autorisation de crédit (si solde > 0)</label>{{ form.credit_authorization }}</div>
+                <div class="col-md-6"><label class="form-label small fw-semibold">Mode de remise</label>{{ form.delivery_mode }}</div>
+                <div class="col-md-6"><label class="form-label small fw-semibold">Date & Heure de remise</label>{{ form.delivered_at }}</div>
+                <div class="col-12"><label class="form-label small fw-semibold">Lieu de remise / Adresse de livraison</label>{{ form.delivery_address }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Nom complet du réceptionnaire *</label>{{ form.recipient_name }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">Téléphone réceptionnaire</label>{{ form.recipient_phone }}</div>
+                <div class="col-md-4"><label class="form-label small fw-semibold">N° CNI / Passeport</label>{{ form.recipient_id_number }}</div>
+                <div class="col-12"><label class="form-label small fw-semibold">Observations / Réserves</label>{{ form.notes }}</div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success px-4 fw-semibold"><i class="bi bi-check2-circle me-1"></i>Valider la livraison & Générer le BL</button>
+                <a href="{% url 'billing:receivables' %}" class="btn btn-outline-warning"><i class="bi bi-shield-check me-1"></i>Gérer les autorisations de crédit</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

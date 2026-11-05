@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Créances Clients & Autorisations Crédit{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-1">Suivi des Créances Clients & Autorisations de Livraison à Crédit</h4>
+    <p class="text-muted small mb-0">État des soldes impayés, relances WhatsApp et déblocage encadré des livraisons à crédit.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="kpi-card border-danger-subtle">
+            <div class="kpi-label">Total des Créances Clients en Cours</div>
+            <div class="kpi-value text-danger">{{ total_receivables|fcfa }}</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kpi-card border-warning-subtle">
+            <div class="kpi-label">Dont Créances Échues (En retard)</div>
+            <div class="kpi-value text-warning-emphasis">{{ overdue_total|fcfa }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-exclamation-diamond text-danger me-2"></i>Factures Définitives Non Soldées</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Facture</th>
+                            <th>Client</th>
+                            <th>Échéance</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Solde dû</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in unpaid_invoices %}
+                        <tr>
+                            <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-bold">{{ inv.number }}</a></td>
+                            <td><a href="{% url 'clients:detail' inv.client_id %}" class="text-decoration-none">{{ inv.client.name }}</a></td>
+                            <td class="small {% if inv.is_overdue %}text-danger fw-bold{% endif %}">
+                                {{ inv.due_date|date:"d/m/Y"|default:"-" }}
+                            </td>
+                            <td class="text-end">{{ inv.total_amount_fcfa|fcfa }}</td>
+                            <td class="text-end fw-bold text-danger">{{ inv.balance_due_fcfa|fcfa }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'billing:payment_list' %}?invoice={{ inv.pk }}" class="btn btn-outline-success" title="Encaisser"><i class="bi bi-cash"></i></a>
+                                    <a href="{% url 'communications:hub' %}?invoice={{ inv.pk }}&template=relance-impaye" class="btn btn-outline-primary" title="Relance WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Aucune créance impayée en cours !</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check text-warning me-2"></i>Autorisations de Livraison à Crédit</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr><th>Réf.</th><th>Client</th><th>Facture</th><th class="text-end">Solde couvert</th><th>Échéance engagée</th><th>Statut</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for ca in credit_auths %}
+                        <tr>
+                            <td class="fw-bold">{{ ca.reference }}</td>
+                            <td>{{ ca.client.name }}</td>
+                            <td><a href="{% url 'billing:invoice_detail' ca.invoice_id %}">{{ ca.invoice.number }}</a></td>
+                            <td class="text-end">{{ ca.authorized_balance_fcfa|fcfa }}</td>
+                            <td class="small">{{ ca.promised_due_date|date:"d/m/Y" }}</td>
+                            <td><span class="badge {% if ca.status == 'ACTIVE' %}bg-warning text-dark{% elif ca.status == 'REGULARISEE' %}bg-success{% else %}bg-secondary{% endif %}">{{ ca.get_status_display }}</span></td>
+                            <td class="text-end">
+                                {% if ca.status == 'ACTIVE' %}
+                                <form method="post" action="{% url 'billing:credit_status' ca.pk %}" data-confirm="Révoquer cette autorisation de crédit ?">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="REVOQUEE">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">Révoquer</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">Aucune autorisation de livraison à crédit enregistrée.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-warning-subtle text-warning-emphasis"><i class="bi bi-unlock me-2"></i>Accorder une Autorisation de Crédit</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}<div class="text-danger small">{{ field.errors|striptags }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-warning w-100 fw-semibold">Valider l'autorisation de livraison</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

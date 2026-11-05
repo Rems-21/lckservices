@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Centre de Rapports &amp; Exports — LCK Services SARL{% endblock %}
+{% block page_title %}Centre de Rapports &amp; Exports{% endblock %}
+
+{% block content %}
+<div class="alert alert-info py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <i class="fa fa-info-circle me-1"></i>
+        <strong>Période analysée :</strong> {{ report.period_label }} — Sélectionnez vos filtres ci-dessous et exportez en <strong>PDF</strong> ou <strong>Excel (.xlsx)</strong>.
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:export_pdf' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;mode={{ mode }}" class="btn btn-danger btn-sm">
+            <i class="fa fa-file-pdf-o me-1"></i> Exporter PDF
+        </a>
+        <a href="{% url 'reports:export_excel' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;mode={{ mode }}" class="btn btn-success btn-sm">
+            <i class="fa fa-file-excel-o me-1"></i> Exporter Excel (.xlsx)
+        </a>
+    </div>
+</div>
+
+<!-- Barre de filtre simple -->
+<div class="panel panel-default">
+    <div class="panel-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Du</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Au</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Mode de transport</label>
+                <select name="mode" class="form-select form-select-sm">
+                    <option value="">Tous modes (Maritime &amp; Aérien)</option>
+                    <option value="MARITIME" {% if mode == 'MARITIME' %}selected{% endif %}>Maritime uniquement</option>
+                    <option value="AERIEN" {% if mode == 'AERIEN' %}selected{% endif %}>Aérien uniquement</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1"><i class="fa fa-filter me-1"></i> Filtrer</button>
+                <a href="{% url 'reports:hub' %}" class="btn btn-default btn-sm">Réinitialiser</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 4 Tuiles Résumé Financier -->
+<div class="row">
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-primary">
+            <div class="tile-icon"><i class="fa fa-file-text-o"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ report.summary.invoiced_fcfa|fcfa }}</div>
+                <div class="tile-label">Chiffre d'Affaires Facturé</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-success">
+            <div class="tile-icon"><i class="fa fa-money"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ report.summary.collected_fcfa|fcfa }}</div>
+                <div class="tile-label">Paiements Encaissés</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-warning">
+            <div class="tile-icon"><i class="fa fa-calculator"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ report.summary.expenses_fcfa|fcfa }}</div>
+                <div class="tile-label">Dépenses d'Exploitation</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-navy">
+            <div class="tile-icon"><i class="fa fa-line-chart"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ report.summary.net_profit_fcfa|fcfa }}</div>
+                <div class="tile-label">Marge Nette (Créances : {{ report.summary.receivables_fcfa|fcfa }})</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cartes de rapports visuels (Style MyTV reports_dashboard.html) -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <i class="fa fa-bar-chart me-1"></i> Rapport Annuel ({{ report.chart_year }}) — Recettes, Encaissements &amp; Dépenses
+            </div>
+            <div class="panel-body">
+                <canvas id="reportAnnualChart" height="105"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="panel panel-navy">
+            <div class="panel-heading">
+                <i class="fa fa-ship me-1"></i> Statistiques par Mode de Transport
+            </div>
+            <div class="panel-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th class="text-center">Dossiers</th>
+                            <th class="text-center">Colis</th>
+                            <th class="text-end">Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in report.by_mode %}
+                        <tr>
+                            <td><strong>{{ m.mode }}</strong></td>
+                            <td class="text-center">{{ m.folders }}</td>
+                            <td class="text-center">{{ m.parcels }}</td>
+                            <td class="text-end">{{ m.cbm|num:3 }} m³</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="p-3 border-top text-center">
+                    <a href="{% url 'reports:export_pdf' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;mode={{ mode }}" class="btn btn-danger btn-sm me-1">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                    <a href="{% url 'reports:export_excel' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;mode={{ mode }}" class="btn btn-success btn-sm">
+                        <i class="fa fa-file-excel-o"></i> Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau Analyse de Rentabilité des Dossiers -->
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <i class="fa fa-calculator me-1"></i> Analyse de la Rentabilité par Dossier d'Expédition
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered data-table">
+                <thead>
+                    <tr>
+                        <th>Dossier</th>
+                        <th>Mode &amp; Trajet</th>
+                        <th class="text-center">Colis / Cubage</th>
+                        <th class="text-end">Dépenses</th>
+                        <th class="text-end">Facturé</th>
+                        <th class="text-end">Encaissé</th>
+                        <th class="text-end">Marge Nette</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in report.profitability_rows %}
+                    <tr>
+                        <td><a href="{% url 'shipments:detail' row.folder.pk %}" class="fw-bold">{{ row.reference }}</a></td>
+                        <td>{{ row.mode }} — <small class="text-muted">{{ row.route }}</small></td>
+                        <td class="text-center">{{ row.parcels_count }} ({{ row.volume_cbm|num:2 }} m³)</td>
+                        <td class="text-end text-danger">{{ row.expenses_fcfa|fcfa }}</td>
+                        <td class="text-end fw-semibold">{{ row.invoiced_fcfa|fcfa }}</td>
+                        <td class="text-end text-success">{{ row.paid_fcfa|fcfa }}</td>
+                        <td class="text-end fw-bold {% if row.profit_fcfa >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ row.profit_fcfa|fcfa }} ({{ row.margin_pct }}%)
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var cData = {{ report.chart_json|safe }};
+        var el = document.getElementById("reportAnnualChart");
+        if (el && window.Chart) {
+            new Chart(el.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: cData.labels,
+                    datasets: [
+                        { label: "Facturé (FCFA)", data: cData.revenues, backgroundColor: "rgba(37, 99, 235, 0.82)" },
+                        { label: "Encaissé (FCFA)", data: cData.collections, backgroundColor: "rgba(16, 185, 129, 0.85)" },
+                        { label: "Dépenses (FCFA)", data: cData.expenses, backgroundColor: "rgba(239, 68, 68, 0.78)" }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

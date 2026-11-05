@@ -1,0 +1,270 @@
+/* ==========================================================================
+   LCK SERVICES SARL — Plateforme Numérique de Transit & Groupage
+   Feuille de style principale (Bootstrap 5.3 + Design System Métier)
+   ========================================================================== */
+
+:root {
+    --lck-navy-900: #091d32;
+    --lck-navy-800: #0f2942;
+    --lck-navy-700: #163a5c;
+    --lck-sky-600: #0284c7;
+    --lck-sky-500: #0ea5e9;
+    --lck-amber-500: #f59e0b;
+    --lck-emerald-600: #059669;
+    --lck-bg: #f1f5f9;
+    --lck-sidebar-w: 268px;
+}
+
+body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background-color: var(--lck-bg);
+    color: #1e293b;
+    font-size: 0.925rem;
+    overflow-x: hidden;
+}
+
+.num-tab, td.text-end, .kpi-value {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Sidebar */
+.lck-sidebar {
+    width: var(--lck-sidebar-w);
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--lck-navy-900) 0%, var(--lck-navy-800) 100%);
+    color: #cbd5e1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1035;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 24px rgba(9, 29, 50, 0.16);
+    transition: transform 0.25s ease;
+}
+
+.lck-brand {
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: #fff;
+}
+
+.lck-brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--lck-sky-500), var(--lck-amber-500));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+}
+
+.lck-nav-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 0.85rem 1.5rem;
+}
+
+.lck-nav-section {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    padding: 0.9rem 0.75rem 0.35rem;
+}
+
+.lck-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.56rem 0.8rem;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.88rem;
+    transition: all 0.15s ease;
+}
+
+.lck-nav-link i {
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+    color: #94a3b8;
+}
+
+.lck-nav-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+
+.lck-nav-link:hover i {
+    color: var(--lck-sky-500);
+}
+
+.lck-nav-link.active {
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.22), rgba(14, 165, 233, 0.06));
+    color: #fff;
+    border-left: 3px solid var(--lck-sky-500);
+    font-weight: 600;
+}
+
+.lck-nav-link.active i {
+    color: var(--lck-sky-500);
+}
+
+/* Main Content Wrapper */
+.lck-main {
+    margin-left: var(--lck-sidebar-w);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.lck-topbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.65rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.lck-content {
+    flex: 1;
+    padding: 1.5rem;
+}
+
+/* Cards & KPIs */
+.card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15, 41, 66, 0.04);
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.9rem 1.25rem;
+    font-weight: 600;
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+}
+
+.kpi-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 1.15rem 1.25rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    height: 100%;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 41, 66, 0.07);
+}
+
+.kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.kpi-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.kpi-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 0.2rem;
+}
+
+/* Tables */
+.table thead th {
+    background-color: #f8fafc;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 0.9rem;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 0.72rem 0.9rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+/* Timeline Logistique */
+.lck-timeline {
+    position: relative;
+    padding-left: 1.8rem;
+}
+
+.lck-timeline::before {
+    content: "";
+    position: absolute;
+    left: 0.55rem;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    width: 2px;
+    background: #cbd5e1;
+}
+
+.lck-timeline-item {
+    position: relative;
+    padding-bottom: 1.15rem;
+}
+
+.lck-timeline-dot {
+    position: absolute;
+    left: -1.6rem;
+    top: 0.22rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--lck-sky-600);
+    border: 3px solid #e0f2fe;
+}
+
+.bg-teal-subtle {
+    background-color: #ccfbf1 !important;
+}
+
+/* Responsive Mobile Sidebar */
+@media (max-width: 991.98px) {
+    .lck-sidebar {
+        transform: translateX(-100%);
+    }
+    .lck-sidebar.show {
+        transform: translateX(0);
+    }
+    .lck-main {
+        margin-left: 0;
+    }
+}

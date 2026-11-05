@@ -1,0 +1,71 @@
+{% load lck_tags %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Rapport d'Activité & Rentabilité</title>
+    <style>
+        @page { size: A4 landscape; margin: 1.2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1e293b; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        .header { border-bottom: 2px solid #0f2942; padding-bottom: 8px; margin-bottom: 14px; }
+        .grid th { background-color: #0f2942; color: #fff; padding: 6px; font-size: 8.5pt; text-align: left; }
+        .grid td { border: 1px solid #cbd5e1; padding: 5px 6px; font-size: 8.5pt; }
+        .kpi-td { border: 1px solid #cbd5e1; background-color: #f8fafc; padding: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-size: 14pt; font-weight: bold; color: #0f2942;">{{ company.name }} — RAPPORT D'ACTIVITÉ, FINANCES & RENTABILITÉ</div>
+        <div>Période analysée : <strong>{{ report.period_label }}</strong> • Édité le {{ generated_at|date:"d/m/Y à H:i" }}</div>
+    </div>
+
+    <table>
+        <tr>
+            <td class="kpi-td"><strong>Dossiers</strong><br>{{ report.summary.folders_count }} ({{ report.summary.maritime_count }} Mar. / {{ report.summary.aerien_count }} Aér.)</td>
+            <td class="kpi-td"><strong>Volume / Poids</strong><br>{{ report.summary.volume_cbm|num:3 }} m³ / {{ report.summary.weight_kg|num:1 }} kg</td>
+            <td class="kpi-td"><strong>Facturé</strong><br>{{ report.summary.invoiced_fcfa|fcfa }}</td>
+            <td class="kpi-td"><strong>Encaissé</strong><br>{{ report.summary.collected_fcfa|fcfa }}</td>
+            <td class="kpi-td"><strong>Dépenses</strong><br>{{ report.summary.expenses_fcfa|fcfa }}</td>
+            <td class="kpi-td"><strong>Marge Nette</strong><br><strong>{{ report.summary.net_profit_fcfa|fcfa }}</strong></td>
+            <td class="kpi-td"><strong>Créances</strong><br>{{ report.summary.receivables_fcfa|fcfa }}</td>
+        </tr>
+    </table>
+
+    <div style="font-weight: bold; margin-bottom: 6px;">ANALYSE DE LA RENTABILITÉ PAR DOSSIER</div>
+    <table class="grid">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Mode</th>
+                <th>Trajet</th>
+                <th>Statut</th>
+                <th style="text-align: center;">Colis</th>
+                <th style="text-align: right;">Volume (m³)</th>
+                <th style="text-align: right;">Dépenses (FCFA)</th>
+                <th style="text-align: right;">Facturé (FCFA)</th>
+                <th style="text-align: right;">Encaissé (FCFA)</th>
+                <th style="text-align: right;">Marge Nette</th>
+                <th style="text-align: right;">Taux</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in report.profitability_rows %}
+            <tr>
+                <td><strong>{{ r.reference }}</strong></td>
+                <td>{{ r.mode }}</td>
+                <td>{{ r.route }}</td>
+                <td>{{ r.status }}</td>
+                <td style="text-align: center;">{{ r.parcels_count }}</td>
+                <td style="text-align: right;">{{ r.volume_cbm|num:3 }}</td>
+                <td style="text-align: right;">{{ r.expenses_fcfa|num:0 }}</td>
+                <td style="text-align: right;">{{ r.invoiced_fcfa|num:0 }}</td>
+                <td style="text-align: right;">{{ r.paid_fcfa|num:0 }}</td>
+                <td style="text-align: right; font-weight: bold;">{{ r.profit_fcfa|num:0 }}</td>
+                <td style="text-align: right;">{{ r.margin_pct }} %</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

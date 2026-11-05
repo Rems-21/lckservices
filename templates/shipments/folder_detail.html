@@ -1,0 +1,1425 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+
+{% block title %}Dossier {{ folder.reference }} — LCK Services SARL{% endblock %}
+{% block page_title %}Dossier : {{ folder.reference }}{% endblock %}
+
+{% block content %}
+<!-- Barre d'actions principale (Style MyTV Equipment Detail) -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 margin-bottom-20">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'shipments:list' %}" class="btn btn-default">
+            <i class="fa fa-arrow-left me-1"></i> Retour à la liste
+        </a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addItemModal">
+            <i class="fa fa-plus me-1"></i> Ajouter Colis / Client
+        </button>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addDepenseModal">
+            <i class="fa fa-calculator me-1"></i> Ajouter Frais
+        </button>
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#editDossierModal">
+            <i class="fa fa-edit me-1"></i> Modifier Dossier
+        </button>
+        <button type="button" class="btn btn-navy" data-bs-toggle="modal" data-bs-target="#statusModal">
+            <i class="fa fa-refresh me-1"></i> Statut
+        </button>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'shipments:print_fiche' folder.pk %}" target="_blank" class="btn btn-primary">
+            <i class="fa fa-print me-1"></i> Fiche A4
+        </a>
+        <a href="{% url 'documents:manifest_pdf' folder.pk %}" target="_blank" class="btn btn-danger">
+            <i class="fa fa-file-pdf-o me-1"></i> Manifeste PDF
+        </a>
+        {% if not folder_payments and not deliveries %}
+        <form method="post" action="{% url 'shipments:delete' folder.pk %}" class="d-inline" data-confirm="Supprimer définitivement le dossier {{ folder.reference }} et ses colis non payés ?">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-default text-danger"><i class="fa fa-trash"></i></button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 4 Tuiles financières rapides -->
+<div class="row">
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-danger">
+            <div class="tile-icon"><i class="fa fa-credit-card"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_frais|fcfa }}</div>
+                <div class="tile-label">Total Frais ({{ expenses|length }} ligne{{ expenses|length|pluralize }})</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-primary">
+            <div class="tile-icon"><i class="fa fa-file-text-o"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_cost_share|fcfa }}</div>
+                <div class="tile-label">Total Facturé ({{ parcels|length }} colis)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-success">
+            <div class="tile-icon"><i class="fa fa-money"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ total_encaisse|fcfa }}</div>
+                <div class="tile-label">Encaissé (Reste : {{ reste_recouvrer|fcfa }})</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="stat-tile tile-navy">
+            <div class="tile-icon"><i class="fa fa-line-chart"></i></div>
+            <div class="tile-data">
+                <div class="huge">{{ benefice_latent|fcfa }}</div>
+                <div class="tile-label">Marge Latente (Cash : {{ benefice_cash|fcfa }})</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disposition 2 Colonnes Style MyTV : Fiche d'Identité à gauche + Onglets à droite -->
+<div class="row">
+    <!-- Colonne Gauche : Fiche d'Identité du Dossier -->
+    <div class="col-lg-4">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <i class="fa fa-info-circle me-1"></i> Fiche d'Identité du Dossier
+            </div>
+            <div class="panel-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-identity mb-0">
+                        <tbody>
+                            <tr>
+                                <td>Référence</td>
+                                <td><strong>{{ folder.reference }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Intitulé</td>
+                                <td>{{ folder.title|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Mode</td>
+                                <td>
+                                    {% if folder.transport_mode == 'MARITIME' %}
+                                        <span class="label label-navy"><i class="fa fa-ship"></i> Maritime</span>
+                                    {% else %}
+                                        <span class="label label-info"><i class="fa fa-plane"></i> Aérien</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Statut actuel</td>
+                                <td>
+                                    {% if folder.status == 'CLOTURE' or folder.status == 'LIVRE' %}
+                                        <span class="label label-success">{{ folder.get_status_display }}</span>
+                                    {% elif folder.status == 'ANNULE' %}
+                                        <span class="label label-danger">{{ folder.get_status_display }}</span>
+                                    {% elif folder.status == 'EN_TRANSIT' %}
+                                        <span class="label label-primary">{{ folder.get_status_display }}</span>
+                                    {% else %}
+                                        <span class="label label-warning">{{ folder.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Origine</td>
+                                <td>{{ folder.origin.city }} ({{ folder.origin.code }}) — {{ folder.origin.country }}</td>
+                            </tr>
+                            <tr>
+                                <td>Destination</td>
+                                <td>{{ folder.destination.city }} ({{ folder.destination.code }}) — {{ folder.destination.country }}</td>
+                            </tr>
+                            {% if folder.transport_mode == 'MARITIME' %}
+                            <tr>
+                                <td>Conteneur</td>
+                                <td>{{ folder.container_number|default:"-" }} {% if folder.container_type %}({{ folder.container_type }}){% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td>Navire / Armateur</td>
+                                <td>{{ folder.vessel_name|default:"-" }} {% if folder.shipping_line %}• {{ folder.shipping_line }}{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td>Connaissement B/L</td>
+                                <td>{{ folder.bl_number|default:"-" }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>Compagnie / Vol</td>
+                                <td>{{ folder.airline_name|default:"-" }} • {{ folder.flight_number|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <td>N° LTA / AWB</td>
+                                <td>{{ folder.awb_number|default:"-" }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td>Transitaire</td>
+                                <td>{{ folder.forwarder|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Départ (ETD)</td>
+                                <td>{{ folder.etd|date:"d/m/Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Arrivée prévue (ETA)</td>
+                                <td>{{ folder.eta|date:"d/m/Y"|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Cubage / Poids</td>
+                                <td><strong>{{ folder.total_volume_cbm|num:3 }} m³</strong> / {{ folder.total_weight_kg|num:1 }} kg</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if folder.notes %}
+        <div class="panel panel-info">
+            <div class="panel-heading">Observations</div>
+            <div class="panel-body small">{{ folder.notes|linebreaksbr }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Colonne Droite : Onglets Opérationnels -->
+    <div class="col-lg-8">
+        <ul class="nav nav-tabs" id="dossierTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-colis" type="button" role="tab">
+                    <i class="fa fa-cubes me-1"></i> Colis &amp; Clients ({{ parcels|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-frais" type="button" role="tab">
+                    <i class="fa fa-calculator me-1"></i> Frais &amp; Répartition ({{ expenses|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-paiements" type="button" role="tab">
+                    <i class="fa fa-money me-1"></i> Factures &amp; Reçus ({{ folder_payments|length }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-suivi" type="button" role="tab">
+                    <i class="fa fa-truck me-1"></i> Suivi &amp; Livraisons
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-docs" type="button" role="tab">
+                    <i class="fa fa-folder-open-o me-1"></i> Documents ({{ documents|length }})
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content pt-3">
+            <!-- ONGLET 1 : COLIS & CLIENTS -->
+            <div class="tab-pane fade show active" id="tab-colis" role="tabpanel">
+                <div class="panel panel-default">
+                    <div class="panel-heading d-flex justify-content-between align-items-center">
+                        <span>Articles / Colis enregistrés dans le dossier</span>
+                        <button type="button" class="btn btn-xs btn-success" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                            <i class="fa fa-plus"></i> Ajouter Colis
+                        </button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Colis &amp; Client</th>
+                                        <th>Désignation</th>
+                                        <th class="text-center">Qté / Cubage</th>
+                                        <th class="text-end">Facturé / Reste</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in parcels %}
+                                    {% with share_url=parcel_share_urls|get_item:p.pk wa_url=parcel_whatsapp_urls|get_item:p.pk deliv=parcel_deliveries|get_item:p.pk %}
+                                    <tr id="item-{{ p.pk }}">
+                                        <td>
+                                            <strong>{{ p.parcel_code }}</strong>
+                                            <div><a href="{% url 'clients:detail' p.client_id %}" class="small">{{ p.client.name }}</a></div>
+                                        </td>
+                                        <td>
+                                            <div>{{ p.description }}</div>
+                                            <small class="text-muted">
+                                                {{ p.category.name|default:"Marchandise" }}
+                                                {% if p.chassis_number %}• Châssis: {{ p.chassis_number }}{% endif %}
+                                                {% if p.contract_file %}• <a href="{{ p.contract_file.url }}" target="_blank"><i class="fa fa-paperclip"></i> Contrat</a>{% endif %}
+                                            </small>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ p.quantity }}</strong> u.
+                                            <div class="text-muted small">{{ p.volume_cbm|num:3 }} m³ | {{ p.weight_kg|num:1 }} kg</div>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="fw-bold">{{ p.suggested_price_fcfa|fcfa }}</div>
+                                            {% if p.balance_due_fcfa > 0 %}
+                                                <small class="text-danger fw-bold">Reste : {{ p.balance_due_fcfa|fcfa }}</small>
+                                            {% elif p.suggested_price_fcfa > 0 %}
+                                                <small class="text-success fw-bold"><i class="fa fa-check"></i> Soldé</small>
+                                            {% else %}
+                                                <small class="text-muted">Payé : {{ p.paid_amount_fcfa|fcfa }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if p.status == 'LIVRE' %}
+                                                <span class="label label-success">Livré</span>
+                                            {% elif p.status == 'DISPONIBLE_ENTREPOT' %}
+                                                <span class="label label-info">En entrepôt</span>
+                                            {% elif p.status == 'LITIGE' %}
+                                                <span class="label label-danger">Litige</span>
+                                            {% else %}
+                                                <span class="label label-warning">{{ p.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-nowrap">
+                                            {% if p.balance_due_fcfa > 0 or p.suggested_price_fcfa == 0 %}
+                                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#payItemModal{{ p.pk }}" title="Encaisser un paiement">
+                                                <i class="fa fa-money"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            {% if p.status != 'LIVRE' %}
+                                            <button type="button" class="btn btn-sm btn-navy" data-bs-toggle="modal" data-bs-target="#deliverItemModal{{ p.pk }}" title="Remettre / Livrer">
+                                                <i class="fa fa-check-square-o"></i>
+                                            </button>
+                                            {% elif deliv %}
+                                            <a href="{% url 'documents:delivery_note_pdf' deliv.pk %}" target="_blank" class="btn btn-sm btn-default" title="Bon de livraison PDF">
+                                                <i class="fa fa-file-pdf-o text-danger"></i>
+                                            </a>
+                                            {% endif %}
+
+                                            <a href="{{ share_url }}" target="_blank" class="btn btn-sm btn-primary" title="Facture Client">
+                                                <i class="fa fa-file-text-o"></i>
+                                            </a>
+                                            <a href="{{ wa_url }}" target="_blank" class="btn btn-sm btn-success" style="background:#25D366;border-color:#25D366;" title="Partager sur WhatsApp">
+                                                <i class="fa fa-whatsapp"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editItemModal{{ p.pk }}" title="Modifier">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            {% if p.paid_amount_fcfa == 0 and p.status != 'LIVRE' %}
+                                            <form method="post" action="{% url 'shipments:delete_item' folder.pk p.pk %}" class="d-inline" data-confirm="Supprimer le colis {{ p.parcel_code }} ?">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            Aucun colis enregistré dans ce dossier. Cliquez sur <strong>Ajouter Colis / Client</strong> pour commencer.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 2 : FRAIS & RÉPARTITION -->
+            <div class="tab-pane fade" id="tab-frais" role="tabpanel">
+                <div class="d-flex flex-wrap gap-2 margin-bottom-15">
+                    <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addDepenseModal">
+                        <i class="fa fa-plus me-1"></i> Enregistrer une Dépense
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recalculerRepartitionModal">
+                        <i class="fa fa-sliders me-1"></i> Répartir Automatiquement les Coûts
+                    </button>
+                    <a href="{% url 'finance:allocate_folder' folder.pk %}" class="btn btn-default btn-sm">
+                        <i class="fa fa-table me-1"></i> Grille d'ajustement manuel
+                    </a>
+                </div>
+
+                {% if active_run %}
+                <div class="alert alert-info py-2 small">
+                    <i class="fa fa-check-circle me-1"></i>
+                    <strong>Répartition active ({{ active_run.reference }}) :</strong> {{ active_run.get_allocation_method_display }} —
+                    Charges : {{ active_run.total_expenses_fcfa|fcfa }} | Commercial : <strong>{{ active_run.total_commercial_fcfa|fcfa }}</strong> |
+                    Marge prévisionnelle : <strong>{{ active_run.expected_profit_fcfa|fcfa }}</strong>.
+                </div>
+                {% endif %}
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">Dépenses &amp; Charges du Dossier</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Catégorie &amp; Libellé</th>
+                                        <th>Prestataire</th>
+                                        <th class="text-end">Montant Devise</th>
+                                        <th class="text-end">Montant FCFA</th>
+                                        <th>Pièce</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for exp in expenses %}
+                                    <tr>
+                                        <td>{{ exp.expense_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <strong>{{ exp.label }}</strong>
+                                            <div class="text-muted small">{{ exp.category.name }}</div>
+                                        </td>
+                                        <td>{{ exp.vendor_name|default:"-" }}</td>
+                                        <td class="text-end">{{ exp.amount_original|num:2 }} {{ exp.currency.code }}</td>
+                                        <td class="text-end fw-bold">{{ exp.amount_fcfa|fcfa }}</td>
+                                        <td>
+                                            {% if exp.receipt_file %}
+                                            <a href="{{ exp.receipt_file.url }}" target="_blank" class="btn btn-xs btn-default"><i class="fa fa-paperclip"></i> Voir</a>
+                                            {% else %}-{% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="post" action="{% url 'shipments:expense_delete' folder.pk exp.pk %}" class="d-inline" data-confirm="Supprimer la dépense « {{ exp.label }} » ?">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-3">Aucune dépense enregistrée sur ce dossier.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 3 : FACTURES & REÇUS -->
+            <div class="tab-pane fade" id="tab-paiements" role="tabpanel">
+                <div class="d-flex flex-wrap gap-2 margin-bottom-15">
+                    <form method="post" action="{% url 'billing:generate_folder_invoices' folder.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="invoice_type" value="PROFORMA">
+                        <button type="submit" class="btn btn-default btn-sm"><i class="fa fa-file-o me-1"></i> Générer Proformas</button>
+                    </form>
+                    <form method="post" action="{% url 'billing:generate_folder_invoices' folder.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="invoice_type" value="DEFINITIVE">
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-file-text-o me-1"></i> Générer Factures Définitives</button>
+                    </form>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">Factures émises ({{ invoices|length }})</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Numéro</th>
+                                        <th>Type</th>
+                                        <th>Client</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Payé</th>
+                                        <th class="text-end">Reste dû</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inv in invoices %}
+                                    <tr>
+                                        <td><a href="{% url 'billing:invoice_detail' inv.pk %}" class="fw-bold">{{ inv.number }}</a></td>
+                                        <td>{{ inv.get_invoice_type_display }}</td>
+                                        <td>{{ inv.client.name }}</td>
+                                        <td class="text-end">{{ inv.total_amount_fcfa|fcfa }}</td>
+                                        <td class="text-end text-success">{{ inv.paid_amount_fcfa|fcfa }}</td>
+                                        <td class="text-end {% if inv.balance_due_fcfa > 0 %}text-danger fw-bold{% endif %}">{{ inv.balance_due_fcfa|fcfa }}</td>
+                                        <td>
+                                            <a href="{% url 'billing:invoice_detail' inv.pk %}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
+                                            <a href="{% url 'documents:invoice_pdf' inv.pk %}" target="_blank" class="btn btn-sm btn-danger" title="PDF"><i class="fa fa-file-pdf-o"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="7" class="text-center text-muted py-3">Aucune facture émise.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel panel-success">
+                    <div class="panel-heading">Reçus de Paiement Encaissés ({{ folder_payments|length }})</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>N° Reçu</th>
+                                        <th>Date</th>
+                                        <th>Client / Colis</th>
+                                        <th>Mode</th>
+                                        <th class="text-end">Montant</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pay in folder_payments %}
+                                    <tr>
+                                        <td><strong>{{ pay.receipt_number }}</strong></td>
+                                        <td>{{ pay.payment_date|date:"d/m/Y" }}</td>
+                                        <td>{{ pay.client.name }} {% if pay.parcel %}<small class="text-muted">({{ pay.parcel.parcel_code }})</small>{% endif %}</td>
+                                        <td>{{ pay.get_payment_method_display }}</td>
+                                        <td class="text-end fw-bold text-success">{{ pay.amount_fcfa|fcfa }}</td>
+                                        <td>
+                                            <a href="{% url 'documents:receipt_pdf' pay.pk %}" target="_blank" class="btn btn-sm btn-primary" title="Reçu PDF"><i class="fa fa-print"></i></a>
+                                            <form method="post" action="{% url 'shipments:delete_payment' folder.pk pay.pk %}" class="d-inline" data-confirm="Annuler et supprimer le reçu {{ pay.receipt_number }} ?">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted py-3">Aucun paiement enregistré sur ce dossier.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 4 : SUIVI, ENTREPÔT & LIVRAISONS -->
+            <div class="tab-pane fade" id="tab-suivi" role="tabpanel">
+                <div class="d-flex flex-wrap gap-2 margin-bottom-15">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#warehouseModal">
+                        <i class="fa fa-building-o me-1"></i> + Opération Entrepôt
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#incidentModal">
+                        <i class="fa fa-warning me-1"></i> + Signaler Incident / Litige
+                    </button>
+                </div>
+
+                {% if deliveries %}
+                <div class="panel panel-success">
+                    <div class="panel-heading">Bons de Livraison émis ({{ deliveries|length }})</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>N° BL</th>
+                                        <th>Date</th>
+                                        <th>Client / Réceptionnaire</th>
+                                        <th>Mode</th>
+                                        <th>PDF</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in deliveries %}
+                                    <tr>
+                                        <td><strong>{{ d.delivery_number }}</strong></td>
+                                        <td>{{ d.delivered_at|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ d.client.name }} — <small class="text-muted">Reçu par {{ d.recipient_name }}</small></td>
+                                        <td>
+                                            {{ d.get_delivery_mode_display }}
+                                            {% if d.credit_authorization %}<span class="label label-warning ms-1">À crédit</span>{% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'documents:delivery_note_pdf' d.pk %}" target="_blank" class="btn btn-sm btn-danger"><i class="fa fa-file-pdf-o"></i> BL PDF</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if incidents %}
+                <div class="panel panel-danger">
+                    <div class="panel-heading">Incidents, Avaries &amp; Litiges ({{ incidents|length }})</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Réf.</th>
+                                        <th>Type / Gravité</th>
+                                        <th>Objet &amp; Description</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inc in incidents %}
+                                    <tr>
+                                        <td><strong>{{ inc.reference }}</strong></td>
+                                        <td>{{ inc.get_incident_type_display }} (<span class="text-danger">{{ inc.get_severity_display }}</span>)</td>
+                                        <td><strong>{{ inc.title }}</strong><div class="small text-muted">{{ inc.description }}</div></td>
+                                        <td><span class="label label-warning">{{ inc.get_status_display }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">Historique Chronologique des Mouvements</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Date &amp; Heure</th>
+                                        <th>Étape</th>
+                                        <th>Lieu</th>
+                                        <th>Détails</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ev in tracking_events %}
+                                    <tr>
+                                        <td class="text-nowrap">{{ ev.event_date|date:"d/m/Y H:i" }}</td>
+                                        <td><span class="label label-primary">{{ ev.get_stage_display }}</span></td>
+                                        <td>{{ ev.location_text|default:"-" }}</td>
+                                        <td>{{ ev.description }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Aucun événement enregistré.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 5 : DOCUMENTS GED -->
+            <div class="tab-pane fade" id="tab-docs" role="tabpanel">
+                <div class="margin-bottom-15">
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#docModal">
+                        <i class="fa fa-upload me-1"></i> Archiver un Document (B/L, AWB, Contrat, Justificatif)
+                    </button>
+                </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">Pièces jointes &amp; Documents du Dossier</div>
+                    <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Référence</th>
+                                        <th>Type</th>
+                                        <th>Titre</th>
+                                        <th>Date</th>
+                                        <th>Fichier</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documents %}
+                                    <tr>
+                                        <td><strong>{{ doc.reference }}</strong></td>
+                                        <td><span class="label label-info">{{ doc.get_doc_type_display }}</span></td>
+                                        <td>{{ doc.title }}</td>
+                                        <td>{{ doc.created_at|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-primary"><i class="fa fa-download"></i> Ouvrir</a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center text-muted py-3">Aucun document archivé sur ce dossier.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================
+     MODALES OPÉRATIONNELLES DU DOSSIER
+     ====================================================================== -->
+
+<!-- 1. Modale Ajout Multi-Colis + Client existant ou nouveau -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:add_items' folder.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-plus-circle me-2"></i>Enregistrer des Colis — {{ folder.reference }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Choix Client -->
+                    <div class="p-3 mb-3 rounded border bg-light">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-bold">Client propriétaire des marchandises *</label>
+                            <div class="btn-group btn-group-sm">
+                                <input type="radio" class="btn-check" name="client_type" id="clientExisting" value="existing" checked>
+                                <label class="btn btn-outline-primary" for="clientExisting">Client existant</label>
+                                <input type="radio" class="btn-check" name="client_type" id="clientNew" value="new">
+                                <label class="btn btn-outline-primary" for="clientNew">+ Nouveau client</label>
+                            </div>
+                        </div>
+
+                        <div id="existingClientBox">
+                            <select name="client_id" class="form-select">
+                                <option value="">-- Sélectionner un client --</option>
+                                {% for c in clients %}
+                                <option value="{{ c.pk }}">{{ c.name }} ({{ c.code }} — {{ c.phone }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div id="newClientBox" class="row g-2 d-none">
+                            <div class="col-md-4">
+                                <input type="text" name="new_client_name" class="form-control" placeholder="Nom complet ou Raison sociale *">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="new_client_phone" class="form-control" placeholder="Téléphone / WhatsApp *">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" name="new_client_city" class="form-control" value="Douala" placeholder="Ville">
+                            </div>
+                            <div class="col-md-2">
+                                <select name="new_client_kind" class="form-select">
+                                    <option value="PARTICULIER">Particulier</option>
+                                    <option value="ENTREPRISE">Entreprise</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lignes d'articles répétables -->
+                    <div id="itemsRepeaterContainer">
+                        <div class="item-row border rounded p-3 mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-5">
+                                    <label class="form-label">Désignation de la marchandise *</label>
+                                    <input type="text" name="item_description[]" class="form-control" placeholder="Ex : Cartons de pièces détachées, Électronique..." required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Catégorie</label>
+                                    <select name="item_category[]" class="form-select">
+                                        <option value="">-- Catégorie --</option>
+                                        {% for cat in categories %}
+                                        <option value="{{ cat.pk }}">{{ cat.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Nature</label>
+                                    <select name="item_type[]" class="form-select">
+                                        {% for it_code, it_lbl in item_type_choices %}
+                                        <option value="{{ it_code }}">{{ it_lbl }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Quantité *</label>
+                                    <input type="number" name="item_qty[]" class="form-control calc-dim" value="1" min="1">
+                                </div>
+
+                                <div class="col-md-2">
+                                    <label class="form-label">Long. (cm)</label>
+                                    <input type="number" step="0.01" name="item_length[]" class="form-control calc-dim" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Larg. (cm)</label>
+                                    <input type="number" step="0.01" name="item_width[]" class="form-control calc-dim" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Haut. (cm)</label>
+                                    <input type="number" step="0.01" name="item_height[]" class="form-control calc-dim" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Volume (m³)</label>
+                                    <input type="number" step="0.0001" name="item_volume[]" class="form-control item-vol-out" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Poids total (kg)</label>
+                                    <input type="number" step="0.001" name="item_weight[]" class="form-control" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Montant Facturé (FCFA)</label>
+                                    <input type="number" step="1" name="item_cost_share[]" class="form-control fw-bold" value="0">
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Valeur déclarée</label>
+                                    <input type="number" step="0.01" name="item_declared_val[]" class="form-control" value="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Devise</label>
+                                    <select name="item_currency[]" class="form-select">
+                                        {% for cur in currencies %}
+                                        <option value="{{ cur.pk }}">{{ cur.code }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">N° Châssis / Série (optionnel)</label>
+                                    <input type="text" name="item_chassis[]" class="form-control" placeholder="Optionnel">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Notes</label>
+                                    <input type="text" name="item_notes[]" class="form-control" placeholder="Fragile, emplacement...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-default" id="btnAddAnotherItem">
+                            <i class="fa fa-plus me-1"></i> Ajouter une autre ligne d'article
+                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 small">Contrat / Bordereau (optionnel) :</label>
+                            <input type="file" name="colis_contract" class="form-control form-control-sm" style="max-width:260px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success"><i class="fa fa-save me-1"></i> Enregistrer &amp; Facturer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Modales par Colis : Paiement, Livraison & Modification -->
+{% for p in parcels %}
+<!-- Encaisser -->
+<div class="modal fade" id="payItemModal{{ p.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:pay_item' folder.pk p.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-money me-2"></i>Encaisser — {{ p.parcel_code }} ({{ p.client.name }})</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small">
+                        Facturé : <strong>{{ p.suggested_price_fcfa|fcfa }}</strong> |
+                        Déjà payé : <strong>{{ p.paid_amount_fcfa|fcfa }}</strong> |
+                        Reste : <strong class="text-danger">{{ p.balance_due_fcfa|fcfa }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Montant à encaisser (FCFA) *</label>
+                        <input type="number" step="1" name="amount_fcfa" class="form-control fw-bold" value="{{ p.balance_due_fcfa|floatformat:0 }}" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mode de paiement</label>
+                            <select name="payment_method" class="form-select">
+                                {% for mcode, mlbl in payment_method_choices %}
+                                <option value="{{ mcode }}">{{ mlbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="payment_date" class="form-control" value="{{ today_iso }}">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Référence transaction (OM, MoMo, Virement...)</label>
+                        <input type="text" name="reference" class="form-control" placeholder="Optionnel">
+                    </div>
+                    <div>
+                        <label class="form-label">Observation</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Optionnel">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success"><i class="fa fa-check me-1"></i> Valider &amp; Générer le Reçu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Livrer -->
+<div class="modal fade" id="deliverItemModal{{ p.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:deliver_item' folder.pk p.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-truck me-2"></i>Remise / Livraison — {{ p.parcel_code }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du réceptionnaire *</label>
+                        <input type="text" name="recipient_name" class="form-control" value="{{ p.client.name }}" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" name="recipient_phone" class="form-control" value="{{ p.client.phone }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">N° CNI / Pièce d'identité</label>
+                            <input type="text" name="recipient_id_number" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mode de remise</label>
+                        <select name="delivery_mode" class="form-select">
+                            <option value="ENLEVEMENT_ENTREPOT">Enlèvement en entrepôt LCK</option>
+                            <option value="LIVRAISON_DOMICILE">Livraison à domicile / sur site client</option>
+                        </select>
+                    </div>
+
+                    {% if p.balance_due_fcfa > 0 %}
+                    <div class="p-3 rounded border border-warning bg-warning-subtle">
+                        <div class="fw-bold text-danger small mb-2">
+                            <i class="fa fa-warning me-1"></i> Solde restant dû : {{ p.balance_due_fcfa|fcfa }}
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="authorize_credit" value="1" id="authCred{{ p.pk }}">
+                            <label class="form-check-label small fw-bold" for="authCred{{ p.pk }}">
+                                Autoriser la livraison à crédit
+                            </label>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Échéance promise *</label>
+                                <input type="date" name="promised_due_date" class="form-control form-control-sm" value="{{ default_credit_due_iso }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Motif</label>
+                                <input type="text" name="credit_reason" class="form-control form-control-sm" placeholder="Accord direction...">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-navy"><i class="fa fa-check me-1"></i> Confirmer la Livraison</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modifier Colis -->
+<div class="modal fade" id="editItemModal{{ p.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:update_item' folder.pk p.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-edit me-2"></i>Modifier Colis {{ p.parcel_code }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Client</label>
+                            <select name="client_id" class="form-select">
+                                {% for c in clients %}
+                                <option value="{{ c.pk }}" {% if c.pk == p.client_id %}selected{% endif %}>{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Statut du colis</label>
+                            <select name="status" class="form-select">
+                                {% for scode, slbl in p.STATUS_CHOICES %}
+                                <option value="{{ scode }}" {% if scode == p.status %}selected{% endif %}>{{ slbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Désignation</label>
+                            <input type="text" name="description" class="form-control" value="{{ p.description }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quantité</label>
+                            <input type="number" name="quantity" class="form-control" value="{{ p.quantity }}" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Volume (m³)</label>
+                            <input type="number" step="0.0001" name="volume_cbm" class="form-control" value="{{ p.volume_cbm|stringformat:'.4f' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Poids (kg)</label>
+                            <input type="number" step="0.001" name="weight_kg" class="form-control" value="{{ p.weight_kg|stringformat:'.3f' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Montant Facturé (FCFA)</label>
+                            <input type="number" step="1" name="cost_share" class="form-control fw-bold" value="{{ p.suggested_price_fcfa|floatformat:0 }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Mettre à jour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 3. Modale Ajout Frais -->
+<div class="modal fade" id="addDepenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:expense_add' folder.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-calculator me-2"></i>Enregistrer un Frais sur {{ folder.reference }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Catégorie de frais *</label>
+                        <select name="category_id" class="form-select">
+                            {% for ec in expense_categories %}
+                            <option value="{{ ec.pk }}">{{ ec.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Libellé de la dépense *</label>
+                        <input type="text" name="label" class="form-control" placeholder="Ex : Fret maritime, Dédouanement PAD, Traction..." required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Montant *</label>
+                            <input type="number" step="0.01" name="amount_original" class="form-control fw-bold" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Devise</label>
+                            <select name="currency_id" class="form-select">
+                                {% for cur in currencies %}
+                                <option value="{{ cur.pk }}">{{ cur.code }} (1 = {{ cur.rate_to_fcfa|num:0 }} FCFA)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Prestataire</label>
+                            <input type="text" name="vendor_name" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="expense_date" class="form-control" value="{{ today_iso }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Pièce justificative (PDF / Image)</label>
+                        <input type="file" name="receipt_file" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning"><i class="fa fa-save me-1"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Modale Répartition Automatique des Frais -->
+<div class="modal fade" id="recalculerRepartitionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:recalculate_allocation' folder.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-sliders me-2"></i>Répartition Automatique des Coûts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Clé de répartition *</label>
+                        <select name="allocation_method" class="form-select">
+                            <option value="VOLUME">Proportionnelle au Volume (m³)</option>
+                            <option value="WEIGHT">Proportionnelle au Poids (kg)</option>
+                            <option value="VALUE">Proportionnelle à la Valeur déclarée</option>
+                            <option value="FLAT">Forfaitaire égalitaire par colis</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Type de marge commerciale</label>
+                            <select name="margin_type" class="form-select">
+                                <option value="PERCENT">Pourcentage (%)</option>
+                                <option value="FIXED_PARCEL">Forfait par colis (FCFA)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valeur de la marge</label>
+                            <input type="number" step="0.01" name="margin_value" class="form-control" value="25">
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="sync_invoices" value="1" id="syncInvCheck" checked>
+                        <label class="form-check-label small" for="syncInvCheck">
+                            Mettre à jour / générer automatiquement les factures clients correspondantes
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-check me-1"></i> Appliquer la répartition</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Modale Modification Rapide Dossier -->
+<div class="modal fade" id="editDossierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:quick_update' folder.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-edit me-2"></i>Modifier Dossier {{ folder.reference }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Intitulé</label>
+                            <input type="text" name="title" class="form-control" value="{{ folder.title }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mode</label>
+                            <select name="transport_mode" class="form-select">
+                                <option value="MARITIME" {% if folder.transport_mode == 'MARITIME' %}selected{% endif %}>Maritime</option>
+                                <option value="AERIEN" {% if folder.transport_mode == 'AERIEN' %}selected{% endif %}>Aérien</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Origine</label>
+                            <input type="text" name="origin_port" class="form-control" value="{{ folder.origin.city }} ({{ folder.origin.country }}) — {{ folder.origin.code }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Destination</label>
+                            <input type="text" name="destination_port" class="form-control" value="{{ folder.destination.city }} ({{ folder.destination.country }}) — {{ folder.destination.code }}">
+                        </div>
+                        {% if folder.transport_mode == 'MARITIME' %}
+                        <div class="col-md-4">
+                            <label class="form-label">N° Conteneur</label>
+                            <input type="text" name="container_number" class="form-control" value="{{ folder.container_number }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Navire</label>
+                            <input type="text" name="vessel_name" class="form-control" value="{{ folder.vessel_name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Connaissement B/L</label>
+                            <input type="text" name="bl_number" class="form-control" value="{{ folder.bl_number }}">
+                        </div>
+                        {% else %}
+                        <div class="col-md-4">
+                            <label class="form-label">Compagnie</label>
+                            <input type="text" name="airline_name" class="form-control" value="{{ folder.airline_name }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">N° Vol</label>
+                            <input type="text" name="flight_number" class="form-control" value="{{ folder.flight_number }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">N° AWB</label>
+                            <input type="text" name="awb_number" class="form-control" value="{{ folder.awb_number }}">
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <label class="form-label">Transitaire</label>
+                            <input type="text" name="forwarder" class="form-control" value="{{ folder.forwarder }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Départ (ETD)</label>
+                            <input type="date" name="departure_date" class="form-control" value="{{ folder.etd|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ETA</label>
+                            <input type="date" name="arrival_estimated_date" class="form-control" value="{{ folder.eta|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" rows="2" class="form-control">{{ folder.notes }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 6. Modale Changement Statut -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:status_update' folder.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-refresh me-2"></i>Mettre à jour le statut — {{ folder.reference }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau statut *</label>
+                        <select name="status" class="form-select">
+                            {% for scode, slbl in status_choices %}
+                            <option value="{{ scode }}" {% if scode == folder.status %}selected{% endif %}>{{ slbl }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position / Lieu actuel</label>
+                        <input type="text" name="location_text" class="form-control" placeholder="Ex : Port Autonome de Douala">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Commentaire de suivi</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Détail de l'étape...">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="propagate_parcels" value="1" id="propCheck" checked>
+                        <label class="form-check-label small" for="propCheck">Répercuter ce statut sur les colis non livrés du dossier</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-navy">Appliquer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 7. Modales Entrepôt, Incident & Document -->
+<div class="modal fade" id="warehouseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:quick_warehouse_op' folder.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-building-o me-2"></i>Opération d'Entrepôt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Type d'opération</label>
+                        <select name="operation_type" class="form-select">
+                            {% for ocode, olbl in warehouse_op_types %}
+                            <option value="{{ ocode }}">{{ olbl }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Entrepôt</label>
+                        <input type="text" name="warehouse_name" class="form-control" placeholder="Ex : Entrepôt LCK Douala">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Colis pointés</label>
+                            <input type="number" name="parcels_checked_count" class="form-control" value="{{ parcels|length }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">État constaté</label>
+                            <select name="condition_status" class="form-select">
+                                {% for ccode, clbl in condition_choices %}
+                                <option value="{{ ccode }}">{{ clbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Observations</label>
+                        <textarea name="notes" rows="2" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="incidentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:quick_incident_add' folder.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-warning me-2"></i>Signaler un Incident / Litige</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nature</label>
+                            <select name="incident_type" class="form-select">
+                                {% for icode, ilbl in incident_types %}
+                                <option value="{{ icode }}">{{ ilbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gravité</label>
+                            <select name="severity" class="form-select">
+                                {% for scode, slbl in severity_choices %}
+                                <option value="{{ scode }}">{{ slbl }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Colis concerné (optionnel)</label>
+                        <select name="parcel_id" class="form-select">
+                            <option value="">-- Dossier global --</option>
+                            {% for p in parcels %}
+                            <option value="{{ p.pk }}">{{ p.parcel_code }} — {{ p.client.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Objet *</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" rows="2" class="form-control"></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label">Photo / Constat</label>
+                        <input type="file" name="attachment" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger">Enregistrer l'incident</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="docModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'shipments:quick_document_add' folder.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-upload me-2"></i>Archiver un Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Type de pièce *</label>
+                        <select name="doc_type" class="form-select">
+                            {% for dcode, dlbl in doc_types %}
+                            <option value="{{ dcode }}">{{ dlbl }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Intitulé</label>
+                        <input type="text" name="title" class="form-control" placeholder="Ex : Connaissement original B/L">
+                    </div>
+                    <div>
+                        <label class="form-label">Fichier *</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">Importer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Bascule Client existant / Nouveau client
+        var rExist = document.getElementById("clientExisting");
+        var rNew = document.getElementById("clientNew");
+        var boxExist = document.getElementById("existingClientBox");
+        var boxNew = document.getElementById("newClientBox");
+        if (rExist && rNew) {
+            var syncClientMode = function () {
+                var isNew = rNew.checked;
+                boxExist.classList.toggle("d-none", isNew);
+                boxNew.classList.toggle("d-none", !isNew);
+            };
+            rExist.addEventListener("change", syncClientMode);
+            rNew.addEventListener("change", syncClientMode);
+        }
+
+        // Calcul automatique L x l x H x Qté -> m³
+        function bindRowCalc(row) {
+            row.querySelectorAll(".calc-dim").forEach(function (inp) {
+                inp.addEventListener("input", function () {
+                    var q = parseFloat(row.querySelector('[name="item_qty[]"]').value) || 1;
+                    var l = parseFloat(row.querySelector('[name="item_length[]"]').value) || 0;
+                    var w = parseFloat(row.querySelector('[name="item_width[]"]').value) || 0;
+                    var h = parseFloat(row.querySelector('[name="item_height[]"]').value) || 0;
+                    if (l > 0 && w > 0 && h > 0) {
+                        var vol = ((l * w * h) / 1000000.0) * q;
+                        row.querySelector(".item-vol-out").value = vol.toFixed(4);
+                    }
+                });
+            });
+        }
+
+        var container = document.getElementById("itemsRepeaterContainer");
+        if (container) {
+            container.querySelectorAll(".item-row").forEach(bindRowCalc);
+            var addBtn = document.getElementById("btnAddAnotherItem");
+            if (addBtn) {
+                addBtn.addEventListener("click", function () {
+                    var first = container.querySelector(".item-row");
+                    var clone = first.cloneNode(true);
+                    clone.querySelectorAll("input").forEach(function (i) {
+                        if (i.name === "item_qty[]") i.value = "1";
+                        else if (i.type === "number") i.value = "0";
+                        else i.value = "";
+                    });
+                    bindRowCalc(clone);
+                    container.appendChild(clone);
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}

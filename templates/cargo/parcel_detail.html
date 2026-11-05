@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load lck_tags %}
+{% block title %}Colis {{ parcel.parcel_code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark fs-6">{{ parcel.parcel_code }}</span>
+            <h4 class="fw-bold mb-0">{{ parcel.description }}</h4>
+            <span class="badge {{ parcel.status|badge_class }}">{{ parcel.get_status_display }}</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            Client : <a href="{% url 'clients:detail' parcel.client_id %}" class="fw-semibold">{{ parcel.client.name }}</a>
+            • Dossier : <a href="{% url 'shipments:detail' parcel.folder_id %}" class="fw-semibold">{{ parcel.folder.reference }} ({{ parcel.folder.get_transport_mode_display }})</a>
+            • Catégorie : {{ parcel.category.name|default:"Standard" }}
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'documents:parcel_label_pdf' parcel.pk %}" target="_blank" class="btn btn-sm btn-dark"><i class="bi bi-qr-code me-1"></i>Étiquette PDF</a>
+        <a href="{% url 'communications:hub' %}?parcel={{ parcel.pk }}" class="btn btn-sm btn-success"><i class="bi bi-whatsapp me-1"></i>Notifier client</a>
+        <a href="{% url 'logistics:incident_create' %}?parcel={{ parcel.pk }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-exclamation-triangle me-1"></i>Signaler avarie</a>
+        <a href="{% url 'cargo:edit' parcel.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Modifier</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card mb-4 text-center p-3">
+            <img src="{{ qr_data_uri }}" alt="QR Code Colis" class="mx-auto" style="width: 148px; height: 148px;">
+            <div class="fw-bold mt-2">{{ parcel.parcel_code }}</div>
+            <small class="text-muted">QR Code de vérification et pointage</small>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-rulers text-primary me-2"></i>Caractéristiques Physiques & Valeur</div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between"><span>Conditionnement :</span><strong>{{ parcel.quantity }} × {{ parcel.get_packaging_type_display }}</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Dimensions unitaires :</span><strong>{{ parcel.length_cm }} × {{ parcel.width_cm }} × {{ parcel.height_cm }} cm</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Volume total calculé :</span><strong class="text-primary">{{ parcel.volume_cbm|num:4 }} m³</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Poids brut total :</span><strong>{{ parcel.weight_kg|num:3 }} kg</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Poids volumétrique aérien :</span><span>{{ parcel.volumetric_weight_air_kg }} kg</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Valeur déclarée :</span><strong>{{ parcel.declared_value|num:2 }} {{ parcel.declared_currency.code }} ({{ parcel.declared_value_fcfa|fcfa }})</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Coût de revient imputé :</span><span>{{ parcel.allocated_cost_fcfa|fcfa }}</span></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Montant commercial :</span><strong class="text-success">{{ parcel.suggested_price_fcfa|fcfa }}</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-geo-alt text-info me-2"></i>Historique Chronologique des Mouvements</div>
+            <div class="card-body">
+                <div class="lck-timeline">
+                    {% for ev in events %}
+                    <div class="lck-timeline-item">
+                        <span class="lck-timeline-dot"></span>
+                        <div class="d-flex justify-content-between">
+                            <strong class="small">{{ ev.get_stage_display }}</strong>
+                            <span class="text-muted" style="font-size: 0.76rem;">{{ ev.event_date|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="small text-primary">{{ ev.location_text }}</div>
+                        {% if ev.description %}<div class="small text-muted">{{ ev.description }}</div>{% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small mb-0">Aucun mouvement enregistré.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-earmark-check text-warning me-2"></i>Documents Associés à la Marchandise</span>
+                <a href="{% url 'documents:list' %}?parcel={{ parcel.pk }}" class="btn btn-sm btn-outline-primary">+ Ajouter pièce</a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for d in docs %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold small">{{ d.title }}</div>
+                        <small class="text-muted">{{ d.get_doc_type_display }} • {{ d.created_at|date:"d/m/Y" }}</small>
+                    </div>
+                    <a href="{{ d.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>Ouvrir</a>
+                </div>
+                {% empty %}
+                <div class="p-3 text-center text-muted small">Aucun document attaché à ce colis.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
